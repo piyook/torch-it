@@ -287,13 +287,13 @@ fi
 # ───────────────────────────────────────────────────────────────────────────────
 echo
 echo -e "${BOLD}${GREEN}╔════════════════════════════════════════════════════════╗"
-echo -e "║          🎉 PROJECT SUCCESSFULLY NUKED! 🎉             ║"
-echo -e "║                                                        ║"
-echo -e "║  ✨ All build artifacts & caches removed               ║"
-echo -e "║  🐳 Docker containers rebuilt from scratch            ║"
-echo -e "║  📦 Dependencies freshly installed                     ║"
-echo -e "║  🚀 Services running in detached mode                 ║"
-echo -e "║                                                        ║"
-echo -e "║  📋 Check nuke-it.log for detailed logs               ║"
+echo -e "          🎉 PROJECT SUCCESSFULLY NUKED! 🎉           "
+echo -e "                                                    "
+echo -e "  ✨ All build artifacts & caches removed           "
+echo -e "  🐳 Docker containers rebuilt from scratch        "
+echo -e "  📦 Dependencies freshly installed               "
+echo -e "  🚀 Services running in detached mode             "
+echo -e "                                                    "
+echo -e "  📋 Check nuke-it.log for detailed logs           "
 echo -e "╚════════════════════════════════════════════════════════╝${RESET}"
 echo
