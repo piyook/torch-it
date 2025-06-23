@@ -60,7 +60,7 @@ LOG_FILE="$(pwd)/nuke-it.log"
 
 # Display the mushroom cloud art (everyone loves a mushroom cloud ;)
 if hash base64 2>/dev/null && hash gunzip 2>/dev/null; then
-    echo -e "${RED}"
+    echo -e "${BOLD}${YELLOW}"
     base64 --decode <<<"H4sIAJQcFFwAA11NQQrDMAy7+xW6NYHiPKAv2B8CTgeBHsYKbcbopW+fHRraTrYSI0UO0CBgsbOvEzXZCTo4JMCrzSL+sJyWtRrK5O1uphOxYE2zqtb9GbX3+56ibmYEG0+jYjD+aUEZSa4IAv0o3jSy2KN0K8qUMb9fG77jhjLjmbF+lsxE9APlrOhe9gAAAA==" | gunzip
     echo -e "${RESET}"
 fi
