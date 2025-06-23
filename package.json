@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "nuke": "bash nuke.sh"
+    "build": "tsc nuke.ts --outDir .",
+    "nuke": "node nuke.js",
+    "nuke:ts": "ts-node nuke.ts"
   },
   "repository": {
     "type": "git",
@@ -21,5 +23,12 @@
   "homepage": "https://github.com/piyook/nuke#readme",
   "dependencies": {
     "oxlint": "^1.3.0"
+  },
+  "devDependencies": {
+    "@types/chalk": "^0.4.31",
+    "@types/node": "^24.0.3",
+    "chalk": "^5.4.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
   }
 }

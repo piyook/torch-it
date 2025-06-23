@@ -1,10 +1,10 @@
 # 🚀 Project Nuke
 
-A powerful, all-in-one shell script to **reset, clean, and rebuild** your Node.js (and optionally Dockerized) project environments with a single command.
+A powerful, all-in-one script to **reset, clean, and rebuild** your Node.js (and optionally Dockerized) project environments with a single command.
 
 ---
 
-## What does `nuke.sh` do?
+## What does `nuke` do?
 
 ### Core Operations (Always Performed)
 
@@ -26,35 +26,36 @@ The script intelligently detects your project's configuration and only performs 
 
 ## Usage
 
-> **Note:** This script is designed for Bash environments.
+> **Note:** You can use either the Bash script (`nuke.sh`) or the TypeScript/JavaScript version (`nuke.ts`/`nuke.js`).
 >
-> On Windows, use [Git Bash](https://gitforwindows.org/) or [WSL](https://docs.microsoft.com/en-us/windows/wsl/) to run `nuke.sh`.
->
-> Running the script in PowerShell or Command Prompt is not supported and will result in errors.
+> On Windows, use [Git Bash](https://gitforwindows.org/) or [WSL](https://docs.microsoft.com/en-us/windows/wsl/) to run `nuke.sh`. PowerShell and CMD are not supported for the Bash script.
 
-### 1. Make the script executable (first time only)
+### Option 1: Bash Script (`nuke.sh`)
 
-```bash
-chmod +x nuke.sh
-```
+1. Make the script executable (first time only):
+   ```bash
+   chmod +x nuke.sh
+   ```
+2. Run the script:
+   ```bash
+   ./nuke.sh
+   ```
 
-### 2. Run the script
+### Option 2: TypeScript/JavaScript Version (`nuke.ts`/`nuke.js`)
 
-```bash
-./nuke.sh
-```
-
-Or via npm:
-
-```bash
-npm run nuke
-```
-
-The script will automatically:
-
-- Detect and use your package manager (npm, yarn, or pnpm)
-- Clean up all build and cache directories
-- Handle Docker resources if Docker is configured and running
+1. Install dependencies (first time only):
+   ```bash
+   npm install
+   ```
+2. To run directly with TypeScript (no build step):
+   ```bash
+   npm run nuke:ts
+   ```
+3. To build and run the compiled JavaScript:
+   ```bash
+   npm run build
+   npm run nuke
+   ```
 
 ---
 
@@ -62,8 +63,8 @@ The script will automatically:
 
 ### Core Requirements
 
-- **Bash** (Linux, macOS, or Windows with Git Bash)
-- **Node.js** and a package manager (`npm`, `yarn`, or `pnpm`)
+- **Bash** (Linux, macOS, or Windows with Git Bash) for `nuke.sh`
+- **Node.js** and a package manager (`npm`, `yarn`, or `pnpm`) for `nuke.ts`/`nuke.js`
 
 ### Optional Requirements
 
@@ -74,7 +75,7 @@ The script will automatically:
 
 ## Customization
 
-You can edit the following arrays in `nuke.sh` to customize the cleanup:
+You can edit the following arrays in `nuke.sh` or `nuke.ts` to customize the cleanup:
 
 - `BUILD_DIRS`: Build output and artifact directories
 - `CACHE_DIRS`: Cache directories for various tools
