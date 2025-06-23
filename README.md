@@ -26,6 +26,12 @@ The script intelligently detects your project's configuration and only performs 
 
 ## Usage
 
+> **Note:** This script is designed for Bash environments.
+>
+> On Windows, use [Git Bash](https://gitforwindows.org/) or [WSL](https://docs.microsoft.com/en-us/windows/wsl/) to run `nuke.sh`.
+>
+> Running the script in PowerShell or Command Prompt is not supported and will result in errors.
+
 ### 1. Make the script executable (first time only)
 
 ```bash
