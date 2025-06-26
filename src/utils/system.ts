@@ -6,7 +6,7 @@ function run(cmd: string, opts: { silent?: boolean } = {}): boolean {
   try {
     execSync(cmd, { stdio: opts.silent ? "pipe" : "inherit" });
     return true;
-  } catch (e) {
+  } catch {
     if (!opts.silent) warn(`Command failed: ${cmd}`);
     return false;
   }

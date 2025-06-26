@@ -1,0 +1,30 @@
+export const BUILD_DIRS = [
+  "node_modules",
+  "dist",
+  "build",
+  ".next",
+  ".nuxt",
+  "out",
+  ".output",
+  ".vite",
+  ".cache",
+  ".parcel-cache",
+  ".webpack",
+  "coverage",
+  ".nyc_output",
+  "storybook-static",
+  ".storybook-out",
+  ".turbo",
+  ".rush",
+  "lib",
+  "es",
+  "cjs",
+  "umd",
+] as const;
+
+export const CACHE_DIRS = [
+  ".pnpm-store",
+  ".yarn/cache",
+  ".npm",
+  "node_modules/.cache",
+] as const;

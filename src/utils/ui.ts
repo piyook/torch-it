@@ -1,25 +1,30 @@
 import { COLOURS, ICONS } from "../constants/constants";
 import chalkInstance from "chalk";
 
-function info(msg: string) {
-  console.log(
-    `${COLOURS.CYAN(ICONS.INFO)} ${COLOURS.BOLD(msg)}${COLOURS.RESET("")}`
-  );
-}
-function success(msg: string) {
-  console.log(`${COLOURS.GREEN(ICONS.SUCCESS)} ${msg}${COLOURS.RESET("")}`);
-}
-function warn(msg: string) {
-  console.log(`${COLOURS.YELLOW(ICONS.WARN)} ${msg}${COLOURS.RESET("")}`);
-}
-function fail(msg: string) {
-  console.log(`${COLOURS.RED(ICONS.FAIL)} ${msg}${COLOURS.RESET("")}`);
-  process.exit(1);
-}
-function step(msg: string) {
-  console.log(
-    `\n${COLOURS.PURPLE("▶")} ${COLOURS.BOLD(msg)}${COLOURS.RESET("")}`
-  );
+function outputToConsole(msg: string, type: string) {
+  switch (type) {
+    case "info":
+      console.log(
+        `${COLOURS.CYAN(ICONS.INFO)} ${COLOURS.BOLD(msg)}${COLOURS.RESET("")}`
+      );
+      break;
+    case "success":
+      console.log(`${COLOURS.GREEN(ICONS.SUCCESS)} ${msg}${COLOURS.RESET("")}`);
+      break;
+    case "warn":
+      console.log(`${COLOURS.YELLOW(ICONS.WARN)} ${msg}${COLOURS.RESET("")}`);
+      break;
+    case "fail":
+      console.log(`${COLOURS.RED(ICONS.FAIL)} ${msg}${COLOURS.RESET("")}`);
+      break;
+    case "step":
+      console.log(
+        `\n${COLOURS.PURPLE("▶")} ${COLOURS.BOLD(msg)}${COLOURS.RESET("")}`
+      );
+      break;
+    default:
+      console.log(msg);
+  }
 }
 
 function printBanner() {
@@ -56,4 +61,4 @@ function printBox(
   console.log(color("╚" + border + "╝"));
 }
 
-export { info, success, warn, fail, step, printBanner, printBox };
+export { outputToConsole, printBanner, printBox };
