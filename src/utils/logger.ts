@@ -5,6 +5,10 @@ function stripAnsiCodes(text: string): string {
   return text.replace(/\u001b\[[0-9;]*m/g, "");
 }
 
+export const clearLog = (): void => {
+  fs.writeFileSync("nuke.log", "");
+};
+
 export const logger = (message: string): void => {
   // Remove ansi codes and leading newline to make log look better
   const cleanMessage = stripAnsiCodes(message).replace(/^\n/, "");

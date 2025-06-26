@@ -1,70 +1,18 @@
-#!/usr/bin/env ts-node
-
 import * as fs from "fs";
 import chalk from "chalk";
-
-import { hasDockerFiles } from "./utils/docker";
+import { hasDockerFiles, dockerCleanup } from "./utils/docker";
 import { hasCmd, run } from "./utils/system";
 import { printBanner, printBox, outputToConsole } from "./utils/ui";
 import { ICONS, COLOURS } from "./constants/constants";
-import { BUILD_DIRS, CACHE_DIRS } from "./constants/config";
+import { cleanup } from "./utils/cleanup";
+import { clearLog } from "./utils/logger";
 
-function dockerCleanup() {
-  if (!hasDockerFiles()) {
-    outputToConsole(
-      "No Docker configuration found - skipping Docker operations",
-      "info"
-    );
-    return;
-  }
-
-  outputToConsole(
-    "Stopping Docker services and removing all resources...",
-    "info"
-  );
-
-  if (!hasCmd("docker")) {
-    outputToConsole(
-      "Docker is not installed - skipping Docker cleanup",
-      "warn"
-    );
-    return;
-  }
-  if (!run("docker info", { silent: true })) {
-    outputToConsole(
-      "Docker daemon is not running - skipping Docker cleanup",
-      "warn"
-    );
-    outputToConsole(
-      "You may need to start Docker manually and run cleanup later",
-      "info"
-    );
-    return;
-  }
-  if (!run("docker compose ps", { silent: true })) {
-    outputToConsole(
-      "No Docker Compose services found - skipping Docker cleanup",
-      "warn"
-    );
-    outputToConsole(
-      "This is normal if no services were previously running",
-      "info"
-    );
-    return;
-  }
-
-  if (run("docker compose down --rmi all --volumes")) {
-    outputToConsole("Docker services stopped and resources cleaned", "success");
-    return;
-  }
-  outputToConsole("Docker cleanup encountered issues", "warn");
-  outputToConsole("Continuing with the rest of the script...", "info");
-  return;
-}
+// delete old log file
+clearLog();
 
 // --- Main ---
 printBox(
-  [`                    ${ICONS.TARGET} NUKE LAUNCHED ${ICONS.ROCKET}`],
+  [`                  ${ICONS.TARGET} NUKE LAUNCHED ${ICONS.ROCKET}`],
   chalk.magenta
 );
 printBanner();
@@ -75,32 +23,7 @@ dockerCleanup();
 
 // --- Build/Cache Cleanup ---
 outputToConsole(`${ICONS.CLEAN} BUILD ARTIFACTS & CACHE CLEANUP`, "step");
-
-let removedCount = 0;
-outputToConsole(
-  "Scanning for build artifacts and cache directories...",
-  "step"
-);
-[...BUILD_DIRS, ...CACHE_DIRS].forEach((dir) => {
-  if (fs.existsSync(dir)) {
-    outputToConsole(`Removing ${dir}...`, "step");
-    try {
-      fs.rmSync(dir, { recursive: true, force: true });
-      outputToConsole(`${dir} removed`, "success");
-      removedCount++;
-    } catch {
-      outputToConsole(`Failed to remove ${dir}`, "fail");
-    }
-  }
-});
-if (removedCount === 0) {
-  outputToConsole(
-    "No build artifacts or cache directories found (project already clean)",
-    "info"
-  );
-} else {
-  outputToConsole(`Removed ${removedCount} build/cache directories`, "success");
-}
+cleanup();
 
 // --- Package Manager Cache Cleanup ---
 outputToConsole("Cleaning package manager caches...", "step");

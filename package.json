@@ -4,9 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc",
-    "nuke": "node dist/nuke.js",
+    "build": "esbuild src/nuke.ts --bundle --outfile=dist/nuke.js --platform=node --minify",
+    "nuke": "npm run build && node dist/nuke.js",
     "nuke:ts": "ts-node src/nuke.ts"
   },
   "repository": {
@@ -21,11 +20,11 @@
     "url": "https://github.com/piyook/nuke/issues"
   },
   "homepage": "https://github.com/piyook/nuke#readme",
-  "dependencies": {},
   "devDependencies": {
     "@types/chalk": "^0.4.31",
     "@types/node": "^24.0.3",
     "chalk": "^5.4.1",
+    "esbuild": "^0.25.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
   }
