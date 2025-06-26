@@ -33,7 +33,11 @@ function outputToConsole(msg: string, type: string) {
 }
 
 function printBanner() {
-  const splosion =
+  printBox(
+    [`                  ${ICONS.TARGET} NUKE LAUNCHED ${ICONS.ROCKET}`],
+    COLOURS.PURPLE
+  );
+  const explosion =
     `             _______   \n` +
     "          _ ._  _ , _ ._\n" +
     "        (_ ' ( `  )_  .__)\n" +
@@ -45,8 +49,8 @@ function printBanner() {
     `\n` +
     "_______@@@@@_/_____\\_@@@@@_______" +
     "\n\n   What could possibly go wrong?\n";
-  console.log(splosion);
-  logger(splosion);
+  console.log(explosion);
+  logger(explosion);
 }
 
 function printBox(

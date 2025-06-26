@@ -1,6 +1,8 @@
 import * as fs from "fs";
 import { outputToConsole } from "./ui";
 import { hasCmd, run } from "./system";
+import { printBox } from "./ui";
+import { COLOURS } from "../constants/constants";
 
 function hasDockerFiles(): boolean {
   return (
@@ -64,4 +66,83 @@ function dockerCleanup() {
   return;
 }
 
-export { hasDockerFiles, dockerCleanup };
+function dockerRebuild() {
+  if (!hasDockerFiles()) {
+    printBox([
+      "🎉 PROJECT SUCCESSFULLY NUKED! 🎉",
+      "",
+      "✨ All build artifacts & caches removed",
+      "📦 Dependencies freshly installed",
+      "",
+      "📋 Check nuke-it.log for detailed logs",
+    ]);
+    process.exit(0);
+  }
+  if (!hasCmd("docker")) {
+    outputToConsole(
+      "Docker is not installed - skipping Docker rebuild",
+      "warn"
+    );
+    printBox([
+      "🎉 PROJECT SUCCESSFULLY NUKED! 🎉",
+      "",
+      "✨ All build artifacts & caches removed",
+      "📦 Dependencies freshly installed",
+      "",
+      "📋 Check nuke-it.log for detailed logs",
+    ]);
+    process.exit(0);
+  }
+  if (!run("docker info", { silent: true })) {
+    outputToConsole(
+      "Docker daemon is not running - skipping Docker rebuild",
+      "warn"
+    );
+    outputToConsole(
+      "Start Docker manually and run 'docker-compose build --pull --no-cache' later",
+      "info"
+    );
+    printBox(
+      [
+        "🎯 PARTIAL NUKE COMPLETED! 🎯",
+        "",
+        "✅ Build artifacts & caches removed",
+        "✅ Dependencies freshly installed",
+        "⚠️  Docker services skipped (Docker not running)",
+        "",
+        "📋 Check nuke-it.log for detailed logs",
+        "🐳 Start Docker and run rebuild commands manually",
+      ],
+      COLOURS.YELLOW
+    );
+    process.exit(0);
+  }
+
+  outputToConsole(
+    "Building Docker resources (this may take a while...)...",
+    "step"
+  );
+  console.log(
+    `   ${COLOURS.YELLOW(
+      "⏳ Please be patient - pulling fresh images and building..."
+    )}`
+  );
+  if (!run("docker-compose build --pull --no-cache")) {
+    outputToConsole(
+      "Docker build encountered issues - check nuke-it.log for details",
+      "fail"
+    );
+  }
+}
+
+function dockerLaunch() {
+  outputToConsole("Starting Docker services in detached mode...", "step");
+  if (!run("docker compose up -d")) {
+    outputToConsole(
+      "Failed to start Docker services - check nuke-it.log for details",
+      "fail"
+    );
+  }
+}
+
+export { hasDockerFiles, dockerCleanup, dockerRebuild, dockerLaunch };

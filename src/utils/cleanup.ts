@@ -1,8 +1,9 @@
 import { outputToConsole } from "./ui";
 import * as fs from "fs";
 import { BUILD_DIRS, CACHE_DIRS } from "../constants/config";
+import { hasCmd, run } from "./system";
 
-const cleanup = () => {
+const cleanupBuildsAndCaches = () => {
   let removedCount = 0;
   outputToConsole(
     "Scanning for build artifacts and cache directories...",
@@ -32,4 +33,31 @@ const cleanup = () => {
       );
 };
 
-export { cleanup };
+const cleanupPackageManagerCaches = () => {
+  let cacheCleaned = false;
+  if (hasCmd("npm")) {
+    if (run("npm cache clean --force")) {
+      outputToConsole("npm cache cleaned", "success");
+      cacheCleaned = true;
+    }
+  }
+  if (hasCmd("yarn")) {
+    if (run("yarn cache clean")) {
+      outputToConsole("yarn cache cleaned", "success");
+      cacheCleaned = true;
+    }
+  }
+  if (hasCmd("pnpm")) {
+    if (run("pnpm store prune")) {
+      outputToConsole("pnpm store cleaned", "success");
+      cacheCleaned = true;
+    }
+  }
+  if (!cacheCleaned)
+    outputToConsole(
+      "No package manager caches cleaned (tools not available)",
+      "info"
+    );
+};
+
+export { cleanupBuildsAndCaches, cleanupPackageManagerCaches };
