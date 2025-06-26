@@ -1,13 +1,13 @@
 import { execSync } from "child_process";
 import * as os from "os";
-import { warn } from "./ui";
+import { outputToConsole } from "./ui";
 
 function run(cmd: string, opts: { silent?: boolean } = {}): boolean {
   try {
     execSync(cmd, { stdio: opts.silent ? "pipe" : "inherit" });
     return true;
   } catch {
-    if (!opts.silent) warn(`Command failed: ${cmd}`);
+    if (!opts.silent) outputToConsole(`Command failed: ${cmd}`, "fail");
     return false;
   }
 }

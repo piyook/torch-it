@@ -1,46 +1,52 @@
-import { COLOURS, ICONS } from "../constants/constants";
 import chalkInstance from "chalk";
+import { COLOURS, ICONS } from "../constants/constants";
+import { logger } from "./logger";
 
 function outputToConsole(msg: string, type: string) {
+  let message;
   switch (type) {
     case "info":
-      console.log(
-        `${COLOURS.CYAN(ICONS.INFO)} ${COLOURS.BOLD(msg)}${COLOURS.RESET("")}`
-      );
+      message = `${COLOURS.CYAN(ICONS.INFO)} ${COLOURS.BOLD(
+        msg
+      )}${COLOURS.RESET("")}`;
+
       break;
     case "success":
-      console.log(`${COLOURS.GREEN(ICONS.SUCCESS)} ${msg}${COLOURS.RESET("")}`);
+      message = `${COLOURS.GREEN(ICONS.SUCCESS)} ${msg}${COLOURS.RESET("")}`;
       break;
     case "warn":
-      console.log(`${COLOURS.YELLOW(ICONS.WARN)} ${msg}${COLOURS.RESET("")}`);
+      message = `${COLOURS.YELLOW(ICONS.WARN)} ${msg}${COLOURS.RESET("")}`;
       break;
     case "fail":
-      console.log(`${COLOURS.RED(ICONS.FAIL)} ${msg}${COLOURS.RESET("")}`);
+      message = `${COLOURS.RED(ICONS.FAIL)} ${msg}${COLOURS.RESET("")}`;
       break;
     case "step":
-      console.log(
-        `\n${COLOURS.PURPLE("▶")} ${COLOURS.BOLD(msg)}${COLOURS.RESET("")}`
-      );
+      message = `\n${COLOURS.PURPLE("▶")} ${COLOURS.BOLD(msg)}${COLOURS.RESET(
+        ""
+      )}`;
       break;
     default:
-      console.log(msg);
+      message = msg;
   }
+  console.log(message);
+  logger(message);
 }
 
 function printBanner() {
-  console.log(
+  const splosion =
     `             _______   \n` +
-      "          _ ._  _ , _ ._\n" +
-      "        (_ ' ( `  )_  .__)\n" +
-      "      ( (  (    )   ` )  ) _)\n" +
-      "     (__ (_   (_ . _) _) ,__)\n" +
-      "         `~~'\\ ' . /'~~`\n" +
-      "              ;   ;\n" +
-      "              /   \\" +
-      `\n` +
-      "_______@@@@@_/_____\\_@@@@@_______" +
-      "\n\n   What could possibly go wrong?\n"
-  );
+    "          _ ._  _ , _ ._\n" +
+    "        (_ ' ( `  )_  .__)\n" +
+    "      ( (  (    )   ` )  ) _)\n" +
+    "     (__ (_   (_ . _) _) ,__)\n" +
+    "         `~~'\\ ' . /'~~`\n" +
+    "              ;   ;\n" +
+    "              /   \\" +
+    `\n` +
+    "_______@@@@@_/_____\\_@@@@@_______" +
+    "\n\n   What could possibly go wrong?\n";
+  console.log(splosion);
+  logger(splosion);
 }
 
 function printBox(
@@ -51,6 +57,7 @@ function printBox(
   const border = color("═".repeat(width));
   console.log(color("╔" + border + "╗"));
   lines.forEach((line) => {
+    logger(line);
     if (line.trim() === "") {
       console.log(color("║" + " ".repeat(width) + "║"));
     } else {

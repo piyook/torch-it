@@ -18,4 +18,10 @@ export const ICONS = {
   ROCKET: "🚀",
   CLEAN: "🧹",
   BUILD: "🔨",
+  TARGET: "🎯",
+  CELEBRATE: "🎉",
+  STARS: "✨",
+  BOX: "📦",
+  CLIPBOARD: "📋",
+  DOCKER: "🐳",
 } as const;

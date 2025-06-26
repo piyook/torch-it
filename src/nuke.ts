@@ -1,9 +1,6 @@
 #!/usr/bin/env ts-node
 
-// TODO: Add a logging to file functionality
-
 import * as fs from "fs";
-import * as path from "path";
 import chalk from "chalk";
 
 import { hasDockerFiles } from "./utils/docker";
@@ -11,9 +8,6 @@ import { hasCmd, run } from "./utils/system";
 import { printBanner, printBox, outputToConsole } from "./utils/ui";
 import { ICONS, COLOURS } from "./constants/constants";
 import { BUILD_DIRS, CACHE_DIRS } from "./constants/config";
-
-const logFile = path.join(process.cwd(), "nuke-it.log");
-if (fs.existsSync(logFile)) fs.unlinkSync(logFile);
 
 function dockerCleanup() {
   if (!hasDockerFiles()) {
@@ -69,7 +63,10 @@ function dockerCleanup() {
 }
 
 // --- Main ---
-printBox(["   🎯 NUKE PROJECT INITIATED"], chalk.magenta);
+printBox(
+  [`                    ${ICONS.TARGET} NUKE LAUNCHED ${ICONS.ROCKET}`],
+  chalk.magenta
+);
 printBanner();
 
 // --- Docker Cleanup ---
