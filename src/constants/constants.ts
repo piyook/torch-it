@@ -1,0 +1,21 @@
+import chalk from "chalk";
+
+export const COLOURS = {
+  BOLD: chalk.bold,
+  CYAN: chalk.cyan,
+  GREEN: chalk.green,
+  RED: chalk.red,
+  YELLOW: chalk.yellow,
+  PURPLE: chalk.magenta,
+  RESET: chalk.reset,
+} as const;
+
+export const ICONS = {
+  INFO: "🔍",
+  SUCCESS: "✅",
+  FAIL: "❌",
+  WARN: "⚠️",
+  ROCKET: "🚀",
+  CLEAN: "🧹",
+  BUILD: "🔨",
+} as const;

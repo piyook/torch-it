@@ -1,5 +1,6 @@
 #!/usr/bin/env ts-node
 "use strict";
+// TODO: Add a logging to file functionality
 var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
         if (ar || !(i in from)) {
@@ -11,136 +12,51 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var fs = require("fs");
-var child_process_1 = require("child_process");
 var path = require("path");
-var os = require("os");
 var chalk_1 = require("chalk");
+var docker_1 = require("./utils/docker");
+var system_1 = require("./utils/system");
+var ui_1 = require("./utils/ui");
+var constants_1 = require("./constants/constants");
 var logFile = path.join(process.cwd(), "nuke-it.log");
 if (fs.existsSync(logFile))
     fs.unlinkSync(logFile);
-var BOLD = chalk_1.default.bold;
-var CYAN = chalk_1.default.cyan;
-var GREEN = chalk_1.default.green;
-var RED = chalk_1.default.red;
-var YELLOW = chalk_1.default.yellow;
-var PURPLE = chalk_1.default.magenta;
-var RESET = chalk_1.default.reset;
-var icons = {
-    info: "🔍",
-    success: "✅",
-    fail: "❌",
-    warn: "⚠️",
-    rocket: "🚀",
-    clean: "🧹",
-    build: "🔨",
-};
-function info(msg) {
-    console.log("".concat(CYAN(icons.info), " ").concat(BOLD(msg)).concat(RESET("")));
-}
-function success(msg) {
-    console.log("".concat(GREEN(icons.success), " ").concat(msg).concat(RESET("")));
-}
-function warn(msg) {
-    console.log("".concat(YELLOW(icons.warn), " ").concat(msg).concat(RESET("")));
-}
-function fail(msg) {
-    console.log("".concat(RED(icons.fail), " ").concat(msg).concat(RESET("")));
-    process.exit(1);
-}
-function step(msg) {
-    console.log("\n".concat(PURPLE("▶"), " ").concat(BOLD(msg)).concat(RESET("")));
-}
-function run(cmd, opts) {
-    if (opts === void 0) { opts = {}; }
-    try {
-        (0, child_process_1.execSync)(cmd, { stdio: opts.silent ? "pipe" : "inherit" });
-        return true;
+function dockerCleanup() {
+    if (!(0, docker_1.hasDockerFiles)()) {
+        (0, ui_1.info)("No Docker configuration found - skipping Docker operations");
+        return;
     }
-    catch (e) {
-        if (!opts.silent)
-            warn("Command failed: ".concat(cmd));
-        return false;
+    (0, ui_1.info)("Stopping Docker services and removing all resources...");
+    if (!(0, system_1.hasCmd)("docker")) {
+        (0, ui_1.warn)("Docker is not installed - skipping Docker cleanup");
+        return;
     }
-}
-function hasDockerFiles() {
-    return (fs.existsSync("Dockerfile") ||
-        fs.existsSync("docker-compose.yml") ||
-        fs.existsSync("docker-compose.yaml"));
-}
-function hasCmd(cmd) {
-    try {
-        if (os.platform() === "win32") {
-            (0, child_process_1.execSync)("where ".concat(cmd), { stdio: "ignore" });
-        }
-        else {
-            (0, child_process_1.execSync)("command -v ".concat(cmd), { stdio: "ignore" });
-        }
-        return true;
+    if (!(0, system_1.run)("docker info", { silent: true })) {
+        (0, ui_1.warn)("Docker daemon is not running - skipping Docker cleanup");
+        (0, ui_1.info)("You may need to start Docker manually and run cleanup later");
+        return;
     }
-    catch (_a) {
-        return false;
+    if (!(0, system_1.run)("docker compose ps", { silent: true })) {
+        (0, ui_1.warn)("No Docker Compose services found - skipping Docker cleanup");
+        (0, ui_1.info)("This is normal if no services were previously running");
+        return;
     }
-}
-function printBanner() {
-    console.log("          _ ._  _ , _ ._\n" +
-        "        (_ ' ( `  )_  .__)\n" +
-        "      ( (  (    )   ` )  ) _)\n" +
-        "     (__ (_   (_ . _) _) ,__)\n" +
-        "         `~~'\\ ' . /'~~`\n" +
-        "              ;   ;\n" +
-        "              /   \\n" +
-        "_____________/_ __ \\_____________\n" +
-        "   It's the only way to be sure.\n");
-}
-function printBox(lines, color) {
-    if (color === void 0) { color = chalk_1.default.green; }
-    var width = 56;
-    var border = color("═".repeat(width));
-    console.log(color("╔" + border + "╗"));
-    lines.forEach(function (line) {
-        if (line.trim() === "") {
-            console.log(color("║" + " ".repeat(width) + "║"));
-        }
-        else {
-            var pad = width - line.length;
-            console.log(color("║" + line + " ".repeat(pad) + "║"));
-        }
-    });
-    console.log(color("╚" + border + "╝"));
+    if ((0, system_1.run)("docker compose down --rmi all --volumes")) {
+        (0, ui_1.success)("Docker services stopped and resources cleaned");
+        return;
+    }
+    (0, ui_1.warn)("Docker cleanup encountered issues");
+    (0, ui_1.info)("Continuing with the rest of the script...");
+    return;
 }
 // --- Main ---
-printBanner();
-printBox(["🎯 PROJECT NUKE INITIATED"], chalk_1.default.magenta);
+(0, ui_1.printBox)(["   🎯 NUKE PROJECT INITIATED"], chalk_1.default.magenta);
+(0, ui_1.printBanner)();
 // --- Docker Cleanup ---
-step("".concat(icons.clean, " DOCKER CLEANUP"));
-if (!hasDockerFiles()) {
-    info("No Docker configuration found - skipping Docker operations");
-}
-else {
-    info("Stopping Docker services and removing all resources...");
-    if (!hasCmd("docker")) {
-        warn("Docker is not installed - skipping Docker cleanup");
-    }
-    else if (!run("docker info", { silent: true })) {
-        warn("Docker daemon is not running - skipping Docker cleanup");
-        info("You may need to start Docker manually and run cleanup later");
-    }
-    else if (!run("docker compose ps", { silent: true })) {
-        warn("No Docker Compose services found - skipping Docker cleanup");
-        info("This is normal if no services were previously running");
-    }
-    else {
-        if (run("docker compose down --rmi all --volumes")) {
-            success("Docker services stopped and resources cleaned");
-        }
-        else {
-            warn("Docker cleanup encountered issues");
-            info("Continuing with the rest of the script...");
-        }
-    }
-}
+(0, ui_1.step)("".concat(constants_1.ICONS.CLEAN, " DOCKER CLEANUP"));
+dockerCleanup();
 // --- Build/Cache Cleanup ---
-step("".concat(icons.clean, " BUILD ARTIFACTS & CACHE CLEANUP"));
+(0, ui_1.step)("".concat(constants_1.ICONS.CLEAN, " BUILD ARTIFACTS & CACHE CLEANUP"));
 var BUILD_DIRS = [
     "node_modules",
     "dist",
@@ -171,101 +87,102 @@ var CACHE_DIRS = [
     "node_modules/.cache",
 ];
 var removedCount = 0;
-info("Scanning for build artifacts and cache directories...");
+(0, ui_1.info)("Scanning for build artifacts and cache directories...");
 __spreadArray(__spreadArray([], BUILD_DIRS, true), CACHE_DIRS, true).forEach(function (dir) {
     if (fs.existsSync(dir)) {
-        info("Removing ".concat(dir, "..."));
+        (0, ui_1.info)("Removing ".concat(dir, "..."));
         try {
             fs.rmSync(dir, { recursive: true, force: true });
-            success("".concat(dir, " removed"));
+            (0, ui_1.success)("".concat(dir, " removed"));
             removedCount++;
         }
         catch (_a) {
-            warn("Failed to remove ".concat(dir));
+            (0, ui_1.warn)("Failed to remove ".concat(dir));
         }
     }
 });
 if (removedCount === 0) {
-    info("No build artifacts or cache directories found (project already clean)");
+    (0, ui_1.info)("No build artifacts or cache directories found (project already clean)");
 }
 else {
-    success("Removed ".concat(removedCount, " build/cache directories"));
+    (0, ui_1.success)("Removed ".concat(removedCount, " build/cache directories"));
 }
 // --- Package Manager Cache Cleanup ---
-info("Cleaning package manager caches...");
+(0, ui_1.info)("Cleaning package manager caches...");
 var cacheCleaned = false;
-if (hasCmd("npm")) {
-    if (run("npm cache clean --force")) {
-        success("npm cache cleaned");
+if ((0, system_1.hasCmd)("npm")) {
+    if ((0, system_1.run)("npm cache clean --force")) {
+        (0, ui_1.success)("npm cache cleaned");
         cacheCleaned = true;
     }
 }
-if (hasCmd("yarn")) {
-    if (run("yarn cache clean")) {
-        success("yarn cache cleaned");
+if ((0, system_1.hasCmd)("yarn")) {
+    if ((0, system_1.run)("yarn cache clean")) {
+        (0, ui_1.success)("yarn cache cleaned");
         cacheCleaned = true;
     }
 }
-if (hasCmd("pnpm")) {
-    if (run("pnpm store prune")) {
-        success("pnpm store cleaned");
+if ((0, system_1.hasCmd)("pnpm")) {
+    if ((0, system_1.run)("pnpm store prune")) {
+        (0, ui_1.success)("pnpm store cleaned");
         cacheCleaned = true;
     }
 }
 if (!cacheCleaned)
-    info("No package manager caches cleaned (tools not available)");
+    (0, ui_1.info)("No package manager caches cleaned (tools not available)");
 // --- Dependency Installation ---
-step("".concat(icons.build, " DEPENDENCY INSTALLATION"));
-info("Detecting package manager and installing dependencies...");
-if (fs.existsSync("pnpm-lock.yaml") && hasCmd("pnpm")) {
-    info("Using pnpm (detected pnpm-lock.yaml)...");
-    if (run("pnpm install"))
-        success("Dependencies installed successfully with pnpm");
+// TODO: tidy-up code and remove nested if statements
+(0, ui_1.step)("".concat(constants_1.ICONS.BUILD, " DEPENDENCY INSTALLATION"));
+(0, ui_1.info)("Detecting package manager and installing dependencies...");
+if (fs.existsSync("pnpm-lock.yaml") && (0, system_1.hasCmd)("pnpm")) {
+    (0, ui_1.info)("Using pnpm (detected pnpm-lock.yaml)...");
+    if ((0, system_1.run)("pnpm install"))
+        (0, ui_1.success)("Dependencies installed successfully with pnpm");
     else
-        fail("pnpm install failed");
+        (0, ui_1.fail)("pnpm install failed");
 }
-else if (fs.existsSync("yarn.lock") && hasCmd("yarn")) {
-    info("Using yarn (detected yarn.lock)...");
-    if (run("yarn install"))
-        success("Dependencies installed successfully with yarn");
+else if (fs.existsSync("yarn.lock") && (0, system_1.hasCmd)("yarn")) {
+    (0, ui_1.info)("Using yarn (detected yarn.lock)...");
+    if ((0, system_1.run)("yarn install"))
+        (0, ui_1.success)("Dependencies installed successfully with yarn");
     else
-        fail("yarn install failed");
+        (0, ui_1.fail)("yarn install failed");
 }
-else if (fs.existsSync("package-lock.json") && hasCmd("npm")) {
-    info("Using npm (detected package-lock.json)...");
-    if (run("npm install"))
-        success("Dependencies installed successfully with npm");
+else if (fs.existsSync("package-lock.json") && (0, system_1.hasCmd)("npm")) {
+    (0, ui_1.info)("Using npm (detected package-lock.json)...");
+    if ((0, system_1.run)("npm install"))
+        (0, ui_1.success)("Dependencies installed successfully with npm");
     else
-        fail("npm install failed");
+        (0, ui_1.fail)("npm install failed");
 }
-else if (hasCmd("npm")) {
-    info("Using npm (fallback)...");
-    if (run("npm install"))
-        success("Dependencies installed successfully with npm");
+else if ((0, system_1.hasCmd)("npm")) {
+    (0, ui_1.info)("Using npm (fallback)...");
+    if ((0, system_1.run)("npm install"))
+        (0, ui_1.success)("Dependencies installed successfully with npm");
     else
-        fail("npm install failed");
+        (0, ui_1.fail)("npm install failed");
 }
-else if (hasCmd("yarn")) {
-    info("Using yarn (fallback)...");
-    if (run("yarn install"))
-        success("Dependencies installed successfully with yarn");
+else if ((0, system_1.hasCmd)("yarn")) {
+    (0, ui_1.info)("Using yarn (fallback)...");
+    if ((0, system_1.run)("yarn install"))
+        (0, ui_1.success)("Dependencies installed successfully with yarn");
     else
-        fail("yarn install failed");
+        (0, ui_1.fail)("yarn install failed");
 }
-else if (hasCmd("pnpm")) {
-    info("Using pnpm (fallback)...");
-    if (run("pnpm install"))
-        success("Dependencies installed successfully with pnpm");
+else if ((0, system_1.hasCmd)("pnpm")) {
+    (0, ui_1.info)("Using pnpm (fallback)...");
+    if ((0, system_1.run)("pnpm install"))
+        (0, ui_1.success)("Dependencies installed successfully with pnpm");
     else
-        fail("pnpm install failed");
+        (0, ui_1.fail)("pnpm install failed");
 }
 else {
-    fail("No package manager found (npm/yarn/pnpm). Please install dependencies manually.");
+    (0, ui_1.fail)("No package manager found (npm/yarn/pnpm). Please install dependencies manually.");
 }
 // --- Docker Rebuild ---
-step("".concat(icons.build, " DOCKER REBUILD"));
-if (!hasDockerFiles()) {
-    printBox([
+(0, ui_1.step)("".concat(constants_1.ICONS.BUILD, " DOCKER REBUILD"));
+if (!(0, docker_1.hasDockerFiles)()) {
+    (0, ui_1.printBox)([
         "🎉 PROJECT SUCCESSFULLY NUKED! 🎉",
         "",
         "✨ All build artifacts & caches removed",
@@ -275,9 +192,9 @@ if (!hasDockerFiles()) {
     ]);
     process.exit(0);
 }
-if (!hasCmd("docker")) {
-    warn("Docker is not installed - skipping Docker rebuild");
-    printBox([
+if (!(0, system_1.hasCmd)("docker")) {
+    (0, ui_1.warn)("Docker is not installed - skipping Docker rebuild");
+    (0, ui_1.printBox)([
         "🎉 PROJECT SUCCESSFULLY NUKED! 🎉",
         "",
         "✨ All build artifacts & caches removed",
@@ -287,10 +204,10 @@ if (!hasCmd("docker")) {
     ]);
     process.exit(0);
 }
-if (!run("docker info", { silent: true })) {
-    warn("Docker daemon is not running - skipping Docker rebuild");
-    info("Start Docker manually and run 'docker-compose build --pull --no-cache' later");
-    printBox([
+if (!(0, system_1.run)("docker info", { silent: true })) {
+    (0, ui_1.warn)("Docker daemon is not running - skipping Docker rebuild");
+    (0, ui_1.info)("Start Docker manually and run 'docker-compose build --pull --no-cache' later");
+    (0, ui_1.printBox)([
         "🎯 PARTIAL NUKE COMPLETED! 🎯",
         "",
         "✅ Build artifacts & caches removed",
@@ -302,19 +219,19 @@ if (!run("docker info", { silent: true })) {
     ], chalk_1.default.yellow);
     process.exit(0);
 }
-info("Building Docker resources (this may take a while...)...");
-console.log("   ".concat(YELLOW("⏳ Please be patient - pulling fresh images and building...")));
-if (!run("docker-compose build --pull --no-cache")) {
-    fail("Docker build encountered issues - check nuke-it.log for details");
+(0, ui_1.info)("Building Docker resources (this may take a while...)...");
+console.log("   ".concat(constants_1.COLOURS.YELLOW("⏳ Please be patient - pulling fresh images and building...")));
+if (!(0, system_1.run)("docker-compose build --pull --no-cache")) {
+    (0, ui_1.fail)("Docker build encountered issues - check nuke-it.log for details");
 }
 // --- Docker Launch ---
-step("".concat(icons.rocket, " LAUNCH"));
-info("Starting Docker services in detached mode...");
-if (!run("docker compose up -d")) {
-    fail("Failed to start Docker services - check nuke-it.log for details");
+(0, ui_1.step)("".concat(constants_1.ICONS.ROCKET, " LAUNCH"));
+(0, ui_1.info)("Starting Docker services in detached mode...");
+if (!(0, system_1.run)("docker compose up -d")) {
+    (0, ui_1.fail)("Failed to start Docker services - check nuke-it.log for details");
 }
 // --- Final Success Message ---
-printBox([
+(0, ui_1.printBox)([
     "🎉 PROJECT SUCCESSFULLY NUKED! 🎉",
     "",
     "✨ All build artifacts & caches removed",
