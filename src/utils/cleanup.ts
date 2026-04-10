@@ -4,6 +4,7 @@ import { BUILD_DIRS, CACHE_DIRS, CUSTOM_DIRS } from "../constants/config";
 import { hasCmd, run } from "./system";
 
 const cleanupBuildsAndCaches = () => {
+  const isDryRun = process.env.NUKE_DRY_RUN === "1";
   let removedCount = 0;
   outputToConsole(
     "Scanning for build artifacts and cache directories...",
@@ -11,10 +12,12 @@ const cleanupBuildsAndCaches = () => {
   );
   [...BUILD_DIRS, ...CACHE_DIRS, ...CUSTOM_DIRS].forEach((dir) => {
     if (fs.existsSync(dir)) {
-      outputToConsole(`Removing ${dir}...`, "step");
+      outputToConsole(`${isDryRun ? "Would remove" : "Removing"} ${dir}...`, "step");
       try {
-        fs.rmSync(dir, { recursive: true, force: true });
-        outputToConsole(`${dir} removed`, "success");
+        if (!isDryRun) {
+          fs.rmSync(dir, { recursive: true, force: true });
+        }
+        outputToConsole(`${dir} ${isDryRun ? "marked for removal (dry-run)" : "removed"}`, "success");
         removedCount++;
       } catch {
         outputToConsole(`Failed to remove ${dir}`, "fail");
@@ -35,22 +38,32 @@ const cleanupBuildsAndCaches = () => {
 };
 
 const cleanupPackageManagerCaches = () => {
+  const isDryRun = process.env.NUKE_DRY_RUN === "1";
   let cacheCleaned = false;
   if (hasCmd("npm")) {
-    if (run("npm cache clean --force")) {
-      outputToConsole("npm cache cleaned", "success");
+    if (isDryRun || run("npm cache clean --force")) {
+      outputToConsole(
+        isDryRun ? "Dry-run: would clean npm cache" : "npm cache cleaned",
+        "success"
+      );
       cacheCleaned = true;
     }
   }
   if (hasCmd("yarn")) {
-    if (run("yarn cache clean")) {
-      outputToConsole("yarn cache cleaned", "success");
+    if (isDryRun || run("yarn cache clean")) {
+      outputToConsole(
+        isDryRun ? "Dry-run: would clean yarn cache" : "yarn cache cleaned",
+        "success"
+      );
       cacheCleaned = true;
     }
   }
   if (hasCmd("pnpm")) {
-    if (run("pnpm store prune")) {
-      outputToConsole("pnpm store cleaned", "success");
+    if (isDryRun || run("pnpm store prune")) {
+      outputToConsole(
+        isDryRun ? "Dry-run: would clean pnpm store" : "pnpm store cleaned",
+        "success"
+      );
       cacheCleaned = true;
     }
   }

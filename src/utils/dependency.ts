@@ -3,6 +3,7 @@ import { outputToConsole } from "./ui";
 import { hasCmd, run } from "./system";
 
 const installDependencies = () => {
+  const isDryRun = process.env.NUKE_DRY_RUN === "1";
   let installed = false;
   outputToConsole(
     "Detecting package manager and installing dependencies...",
@@ -10,54 +11,54 @@ const installDependencies = () => {
   );
   if (fs.existsSync("pnpm-lock.yaml") && hasCmd("pnpm")) {
     outputToConsole("Using pnpm (detected pnpm-lock.yaml)...", "step");
-    if (run("pnpm install")) {
+    if (isDryRun || run("pnpm install")) {
       outputToConsole(
-        "Dependencies installed successfully with pnpm",
+        `Dependencies ${isDryRun ? "would be installed" : "installed successfully"} with pnpm`,
         "success"
       );
       installed = true;
     } else outputToConsole("pnpm install failed", "fail");
   } else if (fs.existsSync("yarn.lock") && hasCmd("yarn")) {
     outputToConsole("Using yarn (detected yarn.lock)...", "step");
-    if (run("yarn install")) {
+    if (isDryRun || run("yarn install")) {
       outputToConsole(
-        "Dependencies installed successfully with yarn",
+        `Dependencies ${isDryRun ? "would be installed" : "installed successfully"} with yarn`,
         "success"
       );
       installed = true;
     } else outputToConsole("yarn install failed", "fail");
   } else if (fs.existsSync("package-lock.json") && hasCmd("npm")) {
     outputToConsole("Using npm (detected package-lock.json)...", "step");
-    if (run("npm install")) {
+    if (isDryRun || run("npm install")) {
       outputToConsole(
-        "Dependencies installed successfully with npm",
+        `Dependencies ${isDryRun ? "would be installed" : "installed successfully"} with npm`,
         "success"
       );
       installed = true;
     } else outputToConsole("npm install failed", "fail");
   } else if (hasCmd("npm")) {
     outputToConsole("Using npm (fallback)...", "info");
-    if (run("npm install")) {
+    if (isDryRun || run("npm install")) {
       outputToConsole(
-        "Dependencies installed successfully with npm",
+        `Dependencies ${isDryRun ? "would be installed" : "installed successfully"} with npm`,
         "success"
       );
       installed = true;
     } else outputToConsole("npm install failed", "fail");
   } else if (hasCmd("yarn")) {
     outputToConsole("Using yarn (fallback)...", "info");
-    if (run("yarn install")) {
+    if (isDryRun || run("yarn install")) {
       outputToConsole(
-        "Dependencies installed successfully with yarn",
+        `Dependencies ${isDryRun ? "would be installed" : "installed successfully"} with yarn`,
         "success"
       );
       installed = true;
     } else outputToConsole("yarn install failed", "");
   } else if (hasCmd("pnpm")) {
     outputToConsole("Using pnpm (fallback)...", "info");
-    if (run("pnpm install")) {
+    if (isDryRun || run("pnpm install")) {
       outputToConsole(
-        "Dependencies installed successfully with pnpm",
+        `Dependencies ${isDryRun ? "would be installed" : "installed successfully"} with pnpm`,
         "success"
       );
       installed = true;

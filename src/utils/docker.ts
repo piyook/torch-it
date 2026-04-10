@@ -13,6 +13,7 @@ function hasDockerFiles(): boolean {
 }
 
 function dockerCleanup() {
+  const isDryRun = process.env.NUKE_DRY_RUN === "1";
   if (!hasDockerFiles()) {
     outputToConsole(
       "No Docker configuration found - skipping Docker operations",
@@ -57,6 +58,14 @@ function dockerCleanup() {
     return "DOCKER_FAIL";
   }
 
+  if (isDryRun) {
+    outputToConsole(
+      "Dry-run: would run 'docker compose down --rmi all --volumes'",
+      "info"
+    );
+    return "OK";
+  }
+
   if (run("docker compose down --rmi all --volumes")) {
     outputToConsole("Docker services stopped and resources cleaned", "success");
     return "OK";
@@ -68,6 +77,7 @@ function dockerCleanup() {
 }
 
 function dockerRebuild() {
+  const isDryRun = process.env.NUKE_DRY_RUN === "1";
   if (!hasDockerFiles()) {
     return false;
   }
@@ -99,6 +109,14 @@ function dockerRebuild() {
       "⏳ Please be patient - pulling fresh images and building..."
     )}`
   );
+  if (isDryRun) {
+    outputToConsole(
+      "Dry-run: would run 'docker-compose build --pull --no-cache'",
+      "info"
+    );
+    return true;
+  }
+
   if (!run("docker-compose build --pull --no-cache")) {
     outputToConsole(
       "Docker build encountered issues - check nuke-it.log for details",
@@ -110,7 +128,12 @@ function dockerRebuild() {
 }
 
 function dockerLaunch() {
+  const isDryRun = process.env.NUKE_DRY_RUN === "1";
   outputToConsole("Starting Docker services in detached mode...", "step");
+  if (isDryRun) {
+    outputToConsole("Dry-run: would run 'docker compose up -d'", "info");
+    return true;
+  }
   if (!run("docker compose up -d")) {
     outputToConsole(
       "Failed to start Docker services - check nuke-it.log for details",

@@ -11,9 +11,17 @@ import type { NukeRecord } from "./types";
 import { statusMessage } from "./utils/status";
 
 // --- Initialisation ---
+const cliArgs = process.argv.slice(2);
+const isDryRun = cliArgs.includes("--test");
+if (isDryRun) {
+  process.env.NUKE_DRY_RUN = "1";
+}
 
 clearLog();
 printBanner();
+if (isDryRun) {
+  outputToConsole("Running in --test dry-run mode (no files or services will be changed)", "warn");
+}
 
 const nukeRecord: NukeRecord = {
   dockerClean: "NO_DOCKER",

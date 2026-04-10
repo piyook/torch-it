@@ -58,6 +58,21 @@ The script intelligently detects your project's configuration and only performs 
    npm run nuke
    ```
 
+### Dry Run (`--test`)
+
+Use `--test` to preview what `nuke` would do without deleting directories, cleaning caches, installing dependencies, or changing Docker resources.
+
+```bash
+npm run nuke:ts -- --test
+```
+
+Or with compiled output:
+
+```bash
+npm run build
+node dist/nuke.js --test
+```
+
 ---
 
 ## Requirements
