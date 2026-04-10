@@ -37,16 +37,10 @@ const cleanupBuildsAndCaches = () => {
   const isDryRun = process.env.TORCH_DRY_RUN === "1";
   let removedCount = 0;
   const torchRcCustomPaths = loadTorchRcCustomPaths();
-  const cleanupTargets = [
-    ...new Set([...BUILD_DIRS, ...CACHE_DIRS, ...CUSTOM_DIRS, ...torchRcCustomPaths]),
-  ];
+  const defaultTargets = [...new Set([...BUILD_DIRS, ...CACHE_DIRS, ...CUSTOM_DIRS])];
+  const customTargets = [...new Set(torchRcCustomPaths)];
 
-  if (torchRcCustomPaths.length > 0) {
-    outputToConsole(`Loaded ${torchRcCustomPaths.length} custom path(s) from torchrc.json`, "info");
-  }
-
-  outputToConsole("Scanning for build artifacts and cache directories...", "step");
-  cleanupTargets.forEach((target) => {
+  const cleanupTarget = (target: string) => {
     if (fs.existsSync(target)) {
       outputToConsole(`${isDryRun ? "Would remove" : "Removing"} ${target}...`, "step");
       try {
@@ -62,7 +56,15 @@ const cleanupBuildsAndCaches = () => {
         outputToConsole(`Failed to remove ${target}`, "fail");
       }
     }
-  });
+  };
+
+  outputToConsole("Scanning for build artifacts and cache directories...", "step");
+  defaultTargets.forEach(cleanupTarget);
+
+  if (customTargets.length > 0) {
+    outputToConsole("Deleting user defined custom directories and files", "step");
+    customTargets.forEach(cleanupTarget);
+  }
 
   if (removedCount === 0) {
     outputToConsole(
