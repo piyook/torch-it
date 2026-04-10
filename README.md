@@ -8,8 +8,6 @@ A powerful, all-in-one TypeScript tool to **reset, clean, and rebuild** your Nod
 
 ---
 
-## What does `torch-it` do?
-
 Project stopped working for no obvious reason 😠 ?  
 
 You'd like to kick it 🥾?   
@@ -18,9 +16,25 @@ Turn it off and on again 📺?
 
 Well better still - try torching it instead 🔥🔥🔥🔥🔥🔥.   
 
-Torch-it is a quick and easy way to clear all local caches, delete node modules and dependencies and reinstall everything again from a clean slate.   
+## What does `torch-it` do?
 
-It's surprising how many times this approach fixes things 😇🤞!
+Nuke your local caches, dependencies, and Docker environment — then rebuild everything from a clean slate, **with a single command**.
+
+It's surprising how often this just fixes things. 🤞
+
+## Features
+
+- **One command** to clear all local caches, delete `node_modules`, and reinstall dependencies
+- **Fully customizable** — specify any directories or files to delete
+- **Docker support** — removes containers, images, and volumes and rebuilds from scratch 🐳
+
+## Supported Frameworks
+
+React, Next.js, Vue, Vite, SvelteKit, React Native, Expo, and more.
+
+## Supported Package Managers
+
+`npm` · `yarn` · `pnpm`
 
 ### Core Operations (Always Performed)
 
