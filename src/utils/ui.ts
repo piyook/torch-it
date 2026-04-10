@@ -45,6 +45,14 @@ function printBanner() {
   logger(flame);
 }
 
+function printRisingFromAshesBanner() {
+  console.log("");
+  printBox(
+    [`               ${ICONS.PHOENIX} RISING FROM THE ASHES ${ICONS.PHOENIX}`],
+    COLOURS.PURPLE,
+  );
+}
+
 function printBox(lines: string[], color: typeof chalkInstance = COLOURS.GREEN): void {
   const width = 56;
   const border = color("═".repeat(width));
@@ -61,4 +69,4 @@ function printBox(lines: string[], color: typeof chalkInstance = COLOURS.GREEN):
   console.log(color("╚" + border + "╝"));
 }
 
-export { outputToConsole, printBanner, printBox };
+export { outputToConsole, printBanner, printBox, printRisingFromAshesBanner };

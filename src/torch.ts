@@ -1,5 +1,5 @@
 import { dockerCleanup, dockerRebuild, dockerLaunch } from "./utils/docker";
-import { printBanner, outputToConsole } from "./utils/ui";
+import { printBanner, outputToConsole, printRisingFromAshesBanner } from "./utils/ui";
 import { ICONS } from "./constants/constants";
 import { cleanupBuildsAndCaches, cleanupPackageManagerCaches } from "./utils/cleanup";
 import { clearLog } from "./utils/logger";
@@ -42,6 +42,7 @@ outputToConsole("Cleaning package manager caches...", "step");
 torchRecord.packageManagerClean = cleanupPackageManagerCaches();
 
 // --- Dependency Installation ---
+printRisingFromAshesBanner();
 outputToConsole(`${ICONS.BUILD} DEPENDENCY INSTALLATION`, "step");
 torchRecord.dependencyInstall = installDependencies();
 

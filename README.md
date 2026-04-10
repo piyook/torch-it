@@ -8,12 +8,12 @@ A powerful, all-in-one TypeScript tool to **reset, clean, and rebuild** your Nod
 
 ---
 
-## What does `torch` do?
+## What does `torch-it` do?
 
 ### Core Operations (Always Performed)
 
 - **Removes build artifacts and cache directories** for common JavaScript/Node.js frameworks (e.g., `node_modules`, `dist`, `.next`, `.cache`, etc.).
-- **Removes custom directories/paths** that you define in `CUSTOM_DIRS`.
+- **Removes custom directories/paths** that you define in `torchrc.json`.
 - **Cleans package manager caches** for npm, yarn, and pnpm.
 - **Reinstalls dependencies** using your preferred package manager (npm, yarn, or pnpm).
 
@@ -97,32 +97,10 @@ For project-level customization (recommended), create `torchrc.json` in your pro
 
 `customPaths` supports both directories and files. Torch will remove these in the same cleanup pass as the built-in targets.
 
-If you're working on this repo directly, you can also edit cleanup arrays in `src/constants/config.ts`:
 
-- `BUILD_DIRS`: Common framework build output and artifact directories
-- `CACHE_DIRS`: Cache directories for package managers and tooling
-- `CUSTOM_DIRS`: Project-specific files/directories you want deleted during torch
+## Logging   
 
-Example `CUSTOM_DIRS` entries:
-
-```ts
-export const CUSTOM_DIRS = [
-  "apps/web/.next",
-  "services/api/tmp",
-  "generated",
-] as const;
-```
-
-When `CUSTOM_DIRS` contains paths, `torch` will attempt to remove them in the same cleanup pass as build/cache directories.
-
----
-
-## Commit & Branch Rules
-
-- Branch names are validated and must match: `main`, `dev`, or `<type>/<name>` where `<type>` is `feat`, `fix`, `hotfix`, `release`, or `chore`.
-- Commit messages use Conventional Commits via commitlint, e.g. `feat: add docker dry-run messaging`, `fix: handle missing package manager`.
-
----
+`torch` outputs information to the console and writes logs to `torch.log` in your project root so you can troubleshoot any issues and see what was removed and reinstalled.
 
 ## Troubleshooting
 
@@ -132,7 +110,8 @@ When `CUSTOM_DIRS` contains paths, `torch` will attempt to remove them in the sa
   3. Are your Docker configuration files valid?
 - If you see errors about missing `package.json`, initialize your project with `npm init -y` or add your project files.
 - For detailed information about any failures, check the `torch.log` file.
-- `torch.log` is generated during runs and should be ignored by git to avoid accidental commits. Add this to your `.gitignore`:
+- `torch.log` is generated during runs and should be ignored by git to avoid accidental commits. Add this to your `.gitignore`:   
+
   ```gitignore
   torch.log
   ```
