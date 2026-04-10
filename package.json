@@ -8,15 +8,15 @@
     "docker",
     "node"
   ],
-  "homepage": "https://github.com/piyook/torch#readme",
+  "homepage": "https://github.com/piyook/torch-it#readme",
   "bugs": {
-    "url": "https://github.com/piyook/torch/issues"
+    "url": "https://github.com/piyook/torch-it/issues"
   },
   "license": "ISC",
   "author": "",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/piyook/torch.git"
+    "url": "git+https://github.com/piyook/torch-it.git"
   },
   "bin": {
     "torch": "dist/torch.js"
