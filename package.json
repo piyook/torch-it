@@ -1,34 +1,72 @@
 {
-  "name": "nuke",
+  "name": "torch-it",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc nuke.ts --outDir .",
-    "nuke": "node nuke.js",
-    "nuke:ts": "ts-node nuke.ts"
+  "description": "CLI to reset, clean, and rebuild Node.js project environments.",
+  "keywords": [
+    "cleanup",
+    "cli",
+    "docker",
+    "node"
+  ],
+  "homepage": "https://github.com/piyook/torch#readme",
+  "bugs": {
+    "url": "https://github.com/piyook/torch/issues"
   },
+  "license": "ISC",
+  "author": "",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/piyook/nuke.git"
+    "url": "git+https://github.com/piyook/torch.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "bin": {
+    "torch": "dist/torch.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/piyook/nuke/issues"
+  "main": "dist/torch.js",
+  "scripts": {
+    "build": "esbuild src/torch.ts --bundle --outfile=dist/torch.js --platform=node --format=cjs --minify --banner:js=\"#!/usr/bin/env node\"",
+    "torch": "npm run build && node dist/torch.js",
+    "torch:ts": "ts-node src/torch.ts",
+    "lint": "oxlint .",
+    "lint:fix": "oxlint . --fix",
+    "format": "oxfmt --check src package.json package-lock.json .commitlintrc.json",
+    "format:write": "oxfmt --write src package.json package-lock.json .commitlintrc.json",
+    "quality": "npm run lint && npm run format && npm test",
+    "validate-branch-name": "validate-branch-name",
+    "prepare": "husky",
+    "prepublishOnly": "npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
-  "homepage": "https://github.com/piyook/nuke#readme",
   "dependencies": {
-    "oxlint": "^1.3.0"
+    "chalk": "^5.4.1"
   },
   "devDependencies": {
-    "@types/chalk": "^0.4.31",
+    "@commitlint/cli": "^20.5.0",
+    "@commitlint/config-conventional": "^20.5.0",
     "@types/node": "^24.0.3",
-    "chalk": "^5.4.1",
+    "esbuild": "^0.28.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "oxfmt": "^0.44.0",
+    "oxlint": "^1.59.0",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "validate-branch-name": "^1.3.2",
+    "vitest": "^4.1.4"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,mjs,cjs,json}": [
+      "oxlint --fix",
+      "oxfmt --write"
+    ]
+  },
+  "validate-branch-name": {
+    "pattern": "^(main|dev){1}$|^(feat|fix|hotfix|release|chore)/.+$",
+    "errorMsg": "INVALID BRANCH NAME: use format 'feat|fix|hotfix|release|core/your-branch-name'"
   }
 }
