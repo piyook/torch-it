@@ -5,16 +5,13 @@ import { hasCmd, run } from "./system";
 const installDependencies = () => {
   const isDryRun = process.env.TORCH_DRY_RUN === "1";
   let installed = false;
-  outputToConsole(
-    "Detecting package manager and installing dependencies...",
-    "step"
-  );
+  outputToConsole("Detecting package manager and installing dependencies...", "step");
   if (fs.existsSync("pnpm-lock.yaml") && hasCmd("pnpm")) {
     outputToConsole("Using pnpm (detected pnpm-lock.yaml)...", "step");
     if (isDryRun || run("pnpm install")) {
       outputToConsole(
         `Dependencies ${isDryRun ? "would be installed" : "installed successfully"} with pnpm`,
-        "success"
+        "success",
       );
       installed = true;
     } else outputToConsole("pnpm install failed", "fail");
@@ -23,7 +20,7 @@ const installDependencies = () => {
     if (isDryRun || run("yarn install")) {
       outputToConsole(
         `Dependencies ${isDryRun ? "would be installed" : "installed successfully"} with yarn`,
-        "success"
+        "success",
       );
       installed = true;
     } else outputToConsole("yarn install failed", "fail");
@@ -32,7 +29,7 @@ const installDependencies = () => {
     if (isDryRun || run("npm install")) {
       outputToConsole(
         `Dependencies ${isDryRun ? "would be installed" : "installed successfully"} with npm`,
-        "success"
+        "success",
       );
       installed = true;
     } else outputToConsole("npm install failed", "fail");
@@ -41,7 +38,7 @@ const installDependencies = () => {
     if (isDryRun || run("npm install")) {
       outputToConsole(
         `Dependencies ${isDryRun ? "would be installed" : "installed successfully"} with npm`,
-        "success"
+        "success",
       );
       installed = true;
     } else outputToConsole("npm install failed", "fail");
@@ -50,7 +47,7 @@ const installDependencies = () => {
     if (isDryRun || run("yarn install")) {
       outputToConsole(
         `Dependencies ${isDryRun ? "would be installed" : "installed successfully"} with yarn`,
-        "success"
+        "success",
       );
       installed = true;
     } else outputToConsole("yarn install failed", "");
@@ -59,14 +56,14 @@ const installDependencies = () => {
     if (isDryRun || run("pnpm install")) {
       outputToConsole(
         `Dependencies ${isDryRun ? "would be installed" : "installed successfully"} with pnpm`,
-        "success"
+        "success",
       );
       installed = true;
     } else outputToConsole("pnpm install failed", "fail");
   } else {
     outputToConsole(
       "No package manager found (npm/yarn/pnpm). Please install dependencies manually.",
-      "fail"
+      "fail",
     );
   }
 

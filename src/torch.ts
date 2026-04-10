@@ -1,10 +1,7 @@
 import { dockerCleanup, dockerRebuild, dockerLaunch } from "./utils/docker";
 import { printBanner, outputToConsole } from "./utils/ui";
 import { ICONS } from "./constants/constants";
-import {
-  cleanupBuildsAndCaches,
-  cleanupPackageManagerCaches,
-} from "./utils/cleanup";
+import { cleanupBuildsAndCaches, cleanupPackageManagerCaches } from "./utils/cleanup";
 import { clearLog } from "./utils/logger";
 import { installDependencies } from "./utils/dependency";
 import type { TorchRecord } from "./types";
@@ -20,10 +17,7 @@ if (isDryRun) {
 clearLog();
 printBanner();
 if (isDryRun) {
-  outputToConsole(
-    "Running in --test dry-run mode (no files or services will be changed)",
-    "warn"
-  );
+  outputToConsole("Running in --test dry-run mode (no files or services will be changed)", "warn");
 }
 
 const torchRecord: TorchRecord = {

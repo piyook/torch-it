@@ -8,7 +8,7 @@ describe("cleanup config directories", () => {
 
   it("includes common package manager cache directories", () => {
     expect(CACHE_DIRS).toEqual(
-      expect.arrayContaining([".pnpm-store", ".yarn/cache", ".npm", "node_modules/.cache"])
+      expect.arrayContaining([".pnpm-store", ".yarn/cache", ".npm", "node_modules/.cache"]),
     );
   });
 

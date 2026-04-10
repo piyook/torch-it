@@ -103,6 +103,13 @@ When `CUSTOM_DIRS` contains paths, `torch` will attempt to remove them in the sa
 
 ---
 
+## Commit & Branch Rules
+
+- Branch names are validated and must match: `main`, `dev`, or `<type>/<name>` where `<type>` is `feat`, `fix`, `hotfix`, `release`, or `chore`.
+- Commit messages use Conventional Commits via commitlint, e.g. `feat: add docker dry-run messaging`, `fix: handle missing package manager`.
+
+---
+
 ## Troubleshooting
 
 - If you see errors related to Docker, check:

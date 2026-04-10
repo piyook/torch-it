@@ -5,9 +5,7 @@ function outputToConsole(msg: string, type: string) {
   let message;
   switch (type) {
     case "info":
-      message = `${COLOURS.CYAN(ICONS.INFO)} ${COLOURS.BOLD(
-        msg
-      )}${COLOURS.RESET("")}`;
+      message = `${COLOURS.CYAN(ICONS.INFO)} ${COLOURS.BOLD(msg)}${COLOURS.RESET("")}`;
 
       break;
     case "success":
@@ -20,9 +18,7 @@ function outputToConsole(msg: string, type: string) {
       message = `${COLOURS.RED(ICONS.FAIL)} ${msg}${COLOURS.RESET("")}`;
       break;
     case "step":
-      message = `\n${COLOURS.PURPLE("▶")} ${COLOURS.BOLD(msg)}${COLOURS.RESET(
-        ""
-      )}`;
+      message = `\n${COLOURS.PURPLE("▶")} ${COLOURS.BOLD(msg)}${COLOURS.RESET("")}`;
       break;
     default:
       message = msg;
@@ -32,10 +28,7 @@ function outputToConsole(msg: string, type: string) {
 }
 
 function printBanner() {
-  printBox(
-    [`                  ${ICONS.TARGET} TORCH LIT ${ICONS.ROCKET}`],
-    COLOURS.PURPLE
-  );
+  printBox([`                  ${ICONS.TARGET} TORCH LIT ${ICONS.ROCKET}`], COLOURS.PURPLE);
   const flame = `
 ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) )
   (( (( (( (( (( (( (( (( (( (( (( (( (( ((
@@ -52,10 +45,7 @@ function printBanner() {
   logger(flame);
 }
 
-function printBox(
-  lines: string[],
-  color: typeof chalkInstance = COLOURS.GREEN
-): void {
+function printBox(lines: string[], color: typeof chalkInstance = COLOURS.GREEN): void {
   const width = 56;
   const border = color("═".repeat(width));
   console.log(color("╔" + border + "╗"));
