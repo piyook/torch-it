@@ -10,6 +10,18 @@ A powerful, all-in-one TypeScript tool to **reset, clean, and rebuild** your Nod
 
 ## What does `torch-it` do?
 
+Project stopped working for no obvious reason 😠 ?  
+
+You'd like to kick it 🥾?   
+Hit it with a hammer 🔨?   
+Turn it off and on again 📺?     
+
+Well better still - try torching it instead 🔥🔥🔥🔥🔥🔥.   
+
+Torch-it is a quick and easy way to clear all local caches, delete node modules and dependencies and reinstall everything again from a clean slate.   
+
+It's surprising how many times this approach fixes things 😇🤞!
+
 ### Core Operations (Always Performed)
 
 - **Removes build artifacts and cache directories** for common JavaScript/Node.js frameworks (e.g., `node_modules`, `dist`, `.next`, `.cache`, etc.).
