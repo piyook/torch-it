@@ -1,7 +1,6 @@
 import chalkInstance from "chalk";
 import { COLOURS, ICONS } from "../constants/constants";
 import { logger } from "./logger";
-
 function outputToConsole(msg: string, type: string) {
   let message;
   switch (type) {

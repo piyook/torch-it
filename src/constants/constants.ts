@@ -14,6 +14,7 @@ export const ICONS = {
   INFO: "🔍",
   SUCCESS: "✅",
   FAIL: "❌",
+  EXCLAMATION: "❗",
   WARN: "⚠️",
   ROCKET: "🚀",
   CLEAN: "🧹",

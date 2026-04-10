@@ -2,7 +2,7 @@ import * as fs from "fs";
 import { outputToConsole } from "./ui";
 import { hasCmd, run } from "./system";
 import { printBox } from "./ui";
-import { COLOURS } from "../constants/constants";
+import { COLOURS, ICONS } from "../constants/constants";
 
 function hasDockerFiles(): boolean {
   return (
@@ -18,7 +18,7 @@ function dockerCleanup() {
       "No Docker configuration found - skipping Docker operations",
       "info"
     );
-    return;
+    return "NO_DOCKER";
   }
 
   outputToConsole(
@@ -31,8 +31,9 @@ function dockerCleanup() {
       "Docker is not installed - skipping Docker cleanup",
       "warn"
     );
-    return;
+    return "NO_DOCKER";
   }
+
   if (!run("docker info", { silent: true })) {
     outputToConsole(
       "Docker daemon is not running - skipping Docker cleanup",
@@ -42,7 +43,7 @@ function dockerCleanup() {
       "You may need to start Docker manually and run cleanup later",
       "info"
     );
-    return;
+    return "NO_DOCKER";
   }
   if (!run("docker compose ps", { silent: true })) {
     outputToConsole(
@@ -53,45 +54,29 @@ function dockerCleanup() {
       "This is normal if no services were previously running",
       "info"
     );
-    return;
+    return "DOCKER_FAIL";
   }
 
   if (run("docker compose down --rmi all --volumes")) {
     outputToConsole("Docker services stopped and resources cleaned", "success");
-    return;
+    return "OK";
   }
 
   outputToConsole("Docker cleanup encountered issues", "warn");
   outputToConsole("Continuing with the rest of the script...", "info");
-  return;
+  return "DOCKER_FAIL";
 }
 
 function dockerRebuild() {
   if (!hasDockerFiles()) {
-    printBox([
-      "🎉 PROJECT SUCCESSFULLY NUKED! 🎉",
-      "",
-      "✨ All build artifacts & caches removed",
-      "📦 Dependencies freshly installed",
-      "",
-      "📋 Check nuke-it.log for detailed logs",
-    ]);
-    process.exit(0);
+    return false;
   }
   if (!hasCmd("docker")) {
     outputToConsole(
       "Docker is not installed - skipping Docker rebuild",
       "warn"
     );
-    printBox([
-      "🎉 PROJECT SUCCESSFULLY NUKED! 🎉",
-      "",
-      "✨ All build artifacts & caches removed",
-      "📦 Dependencies freshly installed",
-      "",
-      "📋 Check nuke-it.log for detailed logs",
-    ]);
-    process.exit(0);
+    return false;
   }
   if (!run("docker info", { silent: true })) {
     outputToConsole(
@@ -102,20 +87,7 @@ function dockerRebuild() {
       "Start Docker manually and run 'docker-compose build --pull --no-cache' later",
       "info"
     );
-    printBox(
-      [
-        "🎯 PARTIAL NUKE COMPLETED! 🎯",
-        "",
-        "✅ Build artifacts & caches removed",
-        "✅ Dependencies freshly installed",
-        "⚠️  Docker services skipped (Docker not running)",
-        "",
-        "📋 Check nuke-it.log for detailed logs",
-        "🐳 Start Docker and run rebuild commands manually",
-      ],
-      COLOURS.YELLOW
-    );
-    process.exit(0);
+    return false;
   }
 
   outputToConsole(
@@ -132,7 +104,9 @@ function dockerRebuild() {
       "Docker build encountered issues - check nuke-it.log for details",
       "fail"
     );
+    return false;
   }
+  return true;
 }
 
 function dockerLaunch() {
@@ -142,7 +116,9 @@ function dockerLaunch() {
       "Failed to start Docker services - check nuke-it.log for details",
       "fail"
     );
+    return false;
   }
+  return true;
 }
 
 export { hasDockerFiles, dockerCleanup, dockerRebuild, dockerLaunch };

@@ -1,5 +1,5 @@
 import { dockerCleanup, dockerRebuild, dockerLaunch } from "./utils/docker";
-import { printBanner, printBox, outputToConsole } from "./utils/ui";
+import { printBanner, outputToConsole } from "./utils/ui";
 import { ICONS } from "./constants/constants";
 import {
   cleanupBuildsAndCaches,
@@ -7,44 +7,52 @@ import {
 } from "./utils/cleanup";
 import { clearLog } from "./utils/logger";
 import { installDependencies } from "./utils/dependency";
+import type { NukeRecord } from "./types";
+import { statusMessage } from "./utils/status";
 
 // --- Initialisation ---
 
 clearLog();
 printBanner();
 
+const nukeRecord: NukeRecord = {
+  dockerClean: "NO_DOCKER",
+  buildAndCacheClean: false,
+  packageManagerClean: false,
+  dependencyInstall: false,
+  dockerRebuild: false,
+  dockerLaunch: false,
+};
+
 // --- Docker Cleanup ---
 outputToConsole(`${ICONS.CLEAN} DOCKER CLEANUP`, "step");
-dockerCleanup();
+nukeRecord.dockerClean = dockerCleanup();
 
 // --- Build/Cache Cleanup ---
 outputToConsole(`${ICONS.CLEAN} BUILD ARTIFACTS & CACHE CLEANUP`, "step");
-cleanupBuildsAndCaches();
+nukeRecord.buildAndCacheClean = cleanupBuildsAndCaches();
 
 // --- Package Manager Cache Cleanup ---
 outputToConsole("Cleaning package manager caches...", "step");
-cleanupPackageManagerCaches();
+nukeRecord.packageManagerClean = cleanupPackageManagerCaches();
 
 // --- Dependency Installation ---
 outputToConsole(`${ICONS.BUILD} DEPENDENCY INSTALLATION`, "step");
-installDependencies();
+nukeRecord.dependencyInstall = installDependencies();
 
 // --- Docker Rebuild ---
-outputToConsole(`${ICONS.BUILD} DOCKER REBUILD`, "step");
-dockerRebuild();
+if (nukeRecord.dockerClean) {
+  outputToConsole(`${ICONS.BUILD} DOCKER REBUILD`, "step");
+  nukeRecord.dockerRebuild = dockerRebuild();
+}
 
 // --- Docker Launch ---
-outputToConsole(`${ICONS.ROCKET} LAUNCH`, "step");
-dockerLaunch();
+if (nukeRecord.dockerRebuild) {
+  nukeRecord.dockerLaunch = dockerLaunch();
+  outputToConsole(`${ICONS.ROCKET} LAUNCH`, "step");
+}
 
 // --- Final Success Message ---
-printBox([
-  "🎉 PROJECT SUCCESSFULLY NUKED! 🎉",
-  "",
-  "✨ All build artifacts & caches removed",
-  "🐳 Docker containers rebuilt from scratch",
-  "📦 Dependencies freshly installed",
-  "🚀 Services running in detached mode",
-  "",
-  "📋 Check nuke-it.log for detailed logs",
-]);
+statusMessage(nukeRecord);
+
+console.log({ nukeRecord });

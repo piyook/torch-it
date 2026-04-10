@@ -22,15 +22,16 @@ const cleanupBuildsAndCaches = () => {
     }
   });
 
-  removedCount === 0
-    ? outputToConsole(
-        "No build artifacts or cache directories found (project already clean)",
-        "info"
-      )
-    : outputToConsole(
-        `Removed ${removedCount} build/cache directories`,
-        "success"
-      );
+  if (removedCount === 0) {
+    outputToConsole(
+      "No build artifacts or cache directories found (project already clean)",
+      "info"
+    );
+    return false;
+  }
+
+  outputToConsole(`Removed ${removedCount} build/cache directories`, "success");
+  return true;
 };
 
 const cleanupPackageManagerCaches = () => {
@@ -58,6 +59,7 @@ const cleanupPackageManagerCaches = () => {
       "No package manager caches cleaned (tools not available)",
       "info"
     );
+  return cacheCleaned;
 };
 
 export { cleanupBuildsAndCaches, cleanupPackageManagerCaches };

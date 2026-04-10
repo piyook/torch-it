@@ -53,7 +53,7 @@ step() {
 # Main Script
 # ═══════════════════════════════════════════════════════════════════════════════
 
-LOG_FILE="$(pwd)/nuke-it.log"
+LOG_FILE="$(pwd)/nuke.log"
 
 # Clean up previous log file
 [[ ! -e "$LOG_FILE" ]] || rm "$LOG_FILE"
@@ -268,7 +268,7 @@ if ! has_docker_files; then
     echo -e "  ✨ All build artifacts & caches removed           "
     echo -e "  📦 Dependencies freshly installed               "
     echo -e "                                                    "
-    echo -e "  📋 Check nuke-it.log for detailed logs           "
+    echo -e "  📋 Check nuke.log for detailed logs           "
     echo -e "════════════════════════════════════════════════════════${RESET}"
     echo
     exit 0
@@ -286,7 +286,7 @@ if ! docker info >/dev/null 2>&1; then
     echo -e "  ✅ Dependencies freshly installed                     "
     echo -e "  ⚠️  Docker services skipped (Docker not running)     "
     echo -e "                                                        "
-    echo -e "  📋 Check nuke-it.log for detailed logs               "
+    echo -e "  📋 Check nuke.log for detailed logs               "
     echo -e "  🐳 Start Docker and run rebuild commands manually    "
     echo -e "════════════════════════════════════════════════════════${RESET}"
     echo
@@ -324,6 +324,6 @@ echo -e "  🐳 Docker containers rebuilt from scratch        "
 echo -e "  📦 Dependencies freshly installed               "
 echo -e "  🚀 Services running in detached mode             "
 echo -e "                                                    "
-echo -e "  📋 Check nuke-it.log for detailed logs           "
+echo -e "  📋 Check nuke.log for detailed logs           "
 echo -e "════════════════════════════════════════════════════════${RESET}"
 echo

@@ -6,7 +6,9 @@
   "scripts": {
     "build": "esbuild src/nuke.ts --bundle --outfile=dist/nuke.js --platform=node --minify",
     "nuke": "npm run build && node dist/nuke.js",
-    "nuke:ts": "ts-node src/nuke.ts"
+    "nuke:ts": "ts-node src/nuke.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "repository": {
     "type": "git",
@@ -26,6 +28,7 @@
     "chalk": "^5.4.1",
     "esbuild": "^0.25.5",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.4"
   }
 }
