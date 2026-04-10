@@ -1,7 +1,6 @@
 import * as fs from "fs";
 import { outputToConsole } from "./ui";
 import { hasCmd, run } from "./system";
-import { printBox } from "./ui";
 import { COLOURS, ICONS } from "../constants/constants";
 
 function hasDockerFiles(): boolean {
@@ -13,7 +12,7 @@ function hasDockerFiles(): boolean {
 }
 
 function dockerCleanup() {
-  const isDryRun = process.env.NUKE_DRY_RUN === "1";
+  const isDryRun = process.env.TORCH_DRY_RUN === "1";
   if (!hasDockerFiles()) {
     outputToConsole(
       "No Docker configuration found - skipping Docker operations",
@@ -77,7 +76,7 @@ function dockerCleanup() {
 }
 
 function dockerRebuild() {
-  const isDryRun = process.env.NUKE_DRY_RUN === "1";
+  const isDryRun = process.env.TORCH_DRY_RUN === "1";
   if (!hasDockerFiles()) {
     return false;
   }
@@ -119,7 +118,7 @@ function dockerRebuild() {
 
   if (!run("docker-compose build --pull --no-cache")) {
     outputToConsole(
-      "Docker build encountered issues - check nuke-it.log for details",
+      "Docker build encountered issues - check torch.log for details",
       "fail"
     );
     return false;
@@ -128,7 +127,7 @@ function dockerRebuild() {
 }
 
 function dockerLaunch() {
-  const isDryRun = process.env.NUKE_DRY_RUN === "1";
+  const isDryRun = process.env.TORCH_DRY_RUN === "1";
   outputToConsole("Starting Docker services in detached mode...", "step");
   if (isDryRun) {
     outputToConsole("Dry-run: would run 'docker compose up -d'", "info");
@@ -136,7 +135,7 @@ function dockerLaunch() {
   }
   if (!run("docker compose up -d")) {
     outputToConsole(
-      "Failed to start Docker services - check nuke-it.log for details",
+      "Failed to start Docker services - check torch.log for details",
       "fail"
     );
     return false;

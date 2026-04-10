@@ -6,12 +6,12 @@ function stripAnsiCodes(text: string): string {
 }
 
 export const clearLog = (): void => {
-  fs.writeFileSync("nuke.log", "");
+  fs.writeFileSync("torch.log", "");
 };
 
 export const logger = (message: string): void => {
   // Remove ansi codes and leading newline to make log look better
   const cleanMessage = stripAnsiCodes(message).replace(/^\n/, "");
   const timestamp = new Date().toISOString();
-  fs.appendFileSync("nuke.log", `[${timestamp}] ${cleanMessage}\n`);
+  fs.appendFileSync("torch.log", `[${timestamp}] ${cleanMessage}\n`);
 };

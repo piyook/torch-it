@@ -4,7 +4,7 @@ import { BUILD_DIRS, CACHE_DIRS, CUSTOM_DIRS } from "../constants/config";
 import { hasCmd, run } from "./system";
 
 const cleanupBuildsAndCaches = () => {
-  const isDryRun = process.env.NUKE_DRY_RUN === "1";
+  const isDryRun = process.env.TORCH_DRY_RUN === "1";
   let removedCount = 0;
   outputToConsole(
     "Scanning for build artifacts and cache directories...",
@@ -38,7 +38,7 @@ const cleanupBuildsAndCaches = () => {
 };
 
 const cleanupPackageManagerCaches = () => {
-  const isDryRun = process.env.NUKE_DRY_RUN === "1";
+  const isDryRun = process.env.TORCH_DRY_RUN === "1";
   let cacheCleaned = false;
   if (hasCmd("npm")) {
     if (isDryRun || run("npm cache clean --force")) {

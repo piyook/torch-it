@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { NukeRecord } from "../types";
+import type { TorchRecord } from "../types";
 
 vi.mock("./ui", () => ({
   printBox: vi.fn(),
@@ -16,7 +16,7 @@ describe("statusMessage", () => {
   });
 
   it("prints no-docker status when docker config is absent", () => {
-    const record: NukeRecord = {
+    const record: TorchRecord = {
       dockerClean: "NO_DOCKER",
       buildAndCacheClean: true,
       packageManagerClean: true,
@@ -29,13 +29,13 @@ describe("statusMessage", () => {
 
     expect(mockedPrintBox).toHaveBeenCalledTimes(1);
     const lines = mockedPrintBox.mock.calls[0][0];
-    expect(lines).toContain("🧹 All build artifacts & caches removed");
+    expect(lines).toContain("🔥 All build artifacts & caches removed");
     expect(lines).toContain("📦 Dependencies freshly installed");
     expect(lines).toContain("🐳 No Docker containers found");
   });
 
   it("prints docker rebuild and launch success messages when docker flow succeeds", () => {
-    const record: NukeRecord = {
+    const record: TorchRecord = {
       dockerClean: "OK",
       buildAndCacheClean: true,
       packageManagerClean: true,
@@ -48,6 +48,6 @@ describe("statusMessage", () => {
 
     const lines = mockedPrintBox.mock.calls[0][0];
     expect(lines).toContain("🐳 Docker containers rebuilt from scratch");
-    expect(lines).toContain("🚀 Services running in detached mode");
+    expect(lines).toContain("🔥 Services running in detached mode");
   });
 });

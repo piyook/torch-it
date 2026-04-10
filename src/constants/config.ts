@@ -54,7 +54,7 @@ export const CACHE_DIRS = [
 ] as const;
 
 export const CUSTOM_DIRS = [
-  // Add project-specific folders/files to remove during nuke.
+  // Add project-specific folders/files to remove during torch.
   // Examples:
   // "apps/web/.next",
   // "services/api/tmp",

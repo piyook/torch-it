@@ -11,16 +11,16 @@ export const COLOURS = {
 } as const;
 
 export const ICONS = {
-  INFO: "🔍",
+  INFO: "🔥",
   SUCCESS: "✅",
   FAIL: "❌",
   EXCLAMATION: "❗",
   WARN: "⚠️",
-  ROCKET: "🚀",
-  CLEAN: "🧹",
-  BUILD: "🔨",
-  TARGET: "🎯",
-  CELEBRATE: "🎉",
+  ROCKET: "🔥",
+  CLEAN: "🔥",
+  BUILD: "🪵",
+  TARGET: "🔥",
+  CELEBRATE: "🔥",
   STARS: "✨",
   BOX: "📦",
   CLIPBOARD: "📋",

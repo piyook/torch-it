@@ -1,10 +1,10 @@
-# 🚀 Project Nuke
+# 🔥 Torch It
 
-A powerful, all-in-one script to **reset, clean, and rebuild** your Node.js (and optionally Dockerized) project environments with a single command.
+A powerful, all-in-one TypeScript tool to **reset, clean, and rebuild** your Node.js (and optionally Dockerized) project environments with a single command.
 
 ---
 
-## What does `nuke` do?
+## What does `torch it` do?
 
 ### Core Operations (Always Performed)
 
@@ -27,22 +27,7 @@ The script intelligently detects your project's configuration and only performs 
 
 ## Usage
 
-> **Note:** You can use either the Bash script (`nuke.sh`) or the TypeScript/JavaScript version (`nuke.ts`/`nuke.js`).
->
-> On Windows, use [Git Bash](https://gitforwindows.org/) or [WSL](https://docs.microsoft.com/en-us/windows/wsl/) to run `nuke.sh`. PowerShell and CMD are not supported for the Bash script.
-
-### Option 1: Bash Script (`nuke.sh`)
-
-1. Make the script executable (first time only):
-   ```bash
-   chmod +x nuke.sh
-   ```
-2. Run the script:
-   ```bash
-   ./nuke.sh
-   ```
-
-### Option 2: TypeScript/JavaScript Version (`nuke.ts`/`nuke.js`)
+### TypeScript/JavaScript Version (`torch.ts`/`torch.js`)
 
 1. Install dependencies (first time only):
    ```bash
@@ -50,27 +35,27 @@ The script intelligently detects your project's configuration and only performs 
    ```
 2. To run directly with TypeScript (no build step):
    ```bash
-   npm run nuke:ts
+   npm run torch:ts
    ```
 3. To build and run the compiled JavaScript:
    ```bash
    npm run build
-   npm run nuke
+   npm run torch
    ```
 
 ### Dry Run (`--test`)
 
-Use `--test` to preview what `nuke` would do without deleting directories, cleaning caches, installing dependencies, or changing Docker resources.
+Use `--test` to preview what `torch` would do without deleting directories, cleaning caches, installing dependencies, or changing Docker resources.
 
 ```bash
-npm run nuke:ts -- --test
+npm run torch:ts -- --test
 ```
 
 Or with compiled output:
 
 ```bash
 npm run build
-node dist/nuke.js --test
+node dist/torch.js --test
 ```
 
 ---
@@ -79,8 +64,7 @@ node dist/nuke.js --test
 
 ### Core Requirements
 
-- **Bash** (Linux, macOS, or Windows with Git Bash) for `nuke.sh`
-- **Node.js** and a package manager (`npm`, `yarn`, or `pnpm`) for `nuke.ts`/`nuke.js`
+- **Node.js** and a package manager (`npm`, `yarn`, or `pnpm`) for `torch.ts`/`torch.js`
 
 ### Optional Requirements
 
@@ -95,7 +79,7 @@ You can edit cleanup arrays in `src/constants/config.ts`:
 
 - `BUILD_DIRS`: Common framework build output and artifact directories
 - `CACHE_DIRS`: Cache directories for package managers and tooling
-- `CUSTOM_DIRS`: Project-specific files/directories you want deleted during nuke
+- `CUSTOM_DIRS`: Project-specific files/directories you want deleted during torch
 
 Example `CUSTOM_DIRS` entries:
 
@@ -107,7 +91,7 @@ export const CUSTOM_DIRS = [
 ] as const;
 ```
 
-When `CUSTOM_DIRS` contains paths, `nuke` will attempt to remove them in the same cleanup pass as build/cache directories.
+When `CUSTOM_DIRS` contains paths, `torch` will attempt to remove them in the same cleanup pass as build/cache directories.
 
 ---
 
@@ -118,7 +102,7 @@ When `CUSTOM_DIRS` contains paths, `nuke` will attempt to remove them in the sam
   2. Does your project have Docker configuration files?
   3. Are your Docker configuration files valid?
 - If you see errors about missing `package.json`, initialize your project with `npm init -y` or add your project files.
-- For detailed information about any failures, check the `nuke-it.log` file.
+- For detailed information about any failures, check the `torch.log` file.
 
 ---
 
@@ -128,4 +112,4 @@ MIT
 
 ---
 
-**Happy nuking!** 🧹✨
+**Happy torching!** 🔥✨

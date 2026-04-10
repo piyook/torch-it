@@ -23,7 +23,7 @@ const mockedRmSync = vi.mocked(fs.rmSync);
 describe("cleanupBuildsAndCaches dry-run", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.NUKE_DRY_RUN = "1";
+    process.env.TORCH_DRY_RUN = "1";
   });
 
   it("does not remove directories in dry-run mode", () => {

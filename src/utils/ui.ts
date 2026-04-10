@@ -33,23 +33,23 @@ function outputToConsole(msg: string, type: string) {
 
 function printBanner() {
   printBox(
-    [`                  ${ICONS.TARGET} NUKE LAUNCHED ${ICONS.ROCKET}`],
+    [`                  ${ICONS.TARGET} TORCH LIT ${ICONS.ROCKET}`],
     COLOURS.PURPLE
   );
-  const explosion =
-    `             _______   \n` +
-    "          _ ._  _ , _ ._\n" +
-    "        (_ ' ( `  )_  .__)\n" +
-    "      ( (  (    )   ` )  ) _)\n" +
-    "     (__ (_   (_ . _) _) ,__)\n" +
-    "         `~~'\\ ' . /'~~`\n" +
-    "              ;   ;\n" +
-    "              /   \\" +
-    `\n` +
-    "_______@@@@@_/_____\\_@@@@@_______" +
-    "\n\n   What could possibly go wrong?\n";
-  console.log(explosion);
-  logger(explosion);
+  const flame = `
+) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) )
+  (( (( (( (( (( (( (( (( (( (( (( (( (( ((
+ ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) )
+  (( (( (( (( (( (( (( (( (( (( (( (( (( ((
+ ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) )
+ ____  _   _ ____  _   _ ___ _   _  ____ 
+| __ )| | | |  _ \\| \\ | |_ _| \\ | |/ ___|
+|  _ \\| | | | |_) |  \\| || ||  \\| | |  _ 
+| |_) | |_| |  _ <| |\\  || || |\\  | |_| |
+|____/ \\___/|_| \\_\\_| \\_|___|_| \\_|\\____|
+`;
+  console.log(flame);
+  logger(flame);
 }
 
 function printBox(

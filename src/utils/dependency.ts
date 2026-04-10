@@ -3,7 +3,7 @@ import { outputToConsole } from "./ui";
 import { hasCmd, run } from "./system";
 
 const installDependencies = () => {
-  const isDryRun = process.env.NUKE_DRY_RUN === "1";
+  const isDryRun = process.env.TORCH_DRY_RUN === "1";
   let installed = false;
   outputToConsole(
     "Detecting package manager and installing dependencies...",
