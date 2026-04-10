@@ -9,6 +9,7 @@ A powerful, all-in-one script to **reset, clean, and rebuild** your Node.js (and
 ### Core Operations (Always Performed)
 
 - **Removes build artifacts and cache directories** for common JavaScript/Node.js frameworks (e.g., `node_modules`, `dist`, `.next`, `.cache`, etc.).
+- **Removes custom directories/paths** that you define in `CUSTOM_DIRS`.
 - **Cleans package manager caches** for npm, yarn, and pnpm.
 - **Reinstalls dependencies** using your preferred package manager (npm, yarn, or pnpm).
 
@@ -75,10 +76,23 @@ The script intelligently detects your project's configuration and only performs 
 
 ## Customization
 
-You can edit the following arrays in `nuke.sh` or `nuke.ts` to customize the cleanup:
+You can edit cleanup arrays in `src/constants/config.ts`:
 
-- `BUILD_DIRS`: Build output and artifact directories
-- `CACHE_DIRS`: Cache directories for various tools
+- `BUILD_DIRS`: Common framework build output and artifact directories
+- `CACHE_DIRS`: Cache directories for package managers and tooling
+- `CUSTOM_DIRS`: Project-specific files/directories you want deleted during nuke
+
+Example `CUSTOM_DIRS` entries:
+
+```ts
+export const CUSTOM_DIRS = [
+  "apps/web/.next",
+  "services/api/tmp",
+  "generated",
+] as const;
+```
+
+When `CUSTOM_DIRS` contains paths, `nuke` will attempt to remove them in the same cleanup pass as build/cache directories.
 
 ---
 

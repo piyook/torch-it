@@ -1,6 +1,6 @@
 import { outputToConsole } from "./ui";
 import * as fs from "fs";
-import { BUILD_DIRS, CACHE_DIRS } from "../constants/config";
+import { BUILD_DIRS, CACHE_DIRS, CUSTOM_DIRS } from "../constants/config";
 import { hasCmd, run } from "./system";
 
 const cleanupBuildsAndCaches = () => {
@@ -9,7 +9,7 @@ const cleanupBuildsAndCaches = () => {
     "Scanning for build artifacts and cache directories...",
     "step"
   );
-  [...BUILD_DIRS, ...CACHE_DIRS].forEach((dir) => {
+  [...BUILD_DIRS, ...CACHE_DIRS, ...CUSTOM_DIRS].forEach((dir) => {
     if (fs.existsSync(dir)) {
       outputToConsole(`Removing ${dir}...`, "step");
       try {
