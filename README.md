@@ -85,7 +85,7 @@ npx torch --test
 
 ---
 
-## Customization (for contributors)
+## Customization
 
 For project-level customization (recommended), create `torchrc.json` in your project root:
 
