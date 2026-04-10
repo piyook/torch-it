@@ -65,5 +65,3 @@ if (torchRecord.dockerRebuild) {
 
 // --- Final Success Message ---
 statusMessage(torchRecord);
-
-console.log({ torchRecord });

@@ -4,7 +4,7 @@ A powerful, all-in-one TypeScript tool to **reset, clean, and rebuild** your Nod
 
 ---
 
-## What does `torch it` do?
+## What does `torch` do?
 
 ### Core Operations (Always Performed)
 
@@ -15,47 +15,55 @@ A powerful, all-in-one TypeScript tool to **reset, clean, and rebuild** your Nod
 
 ### Docker Operations (Only if Docker is Configured)
 
-If your project includes either a `Dockerfile`, `docker-compose.yml`, or `docker-compose.yaml`, the script will also:
+If your project includes either a `Dockerfile`, `docker-compose.yml`, or `docker-compose.yaml`, `torch` will also:
 
 - **Stop and clean up Docker resources** (containers, images, volumes) if Docker is running.
 - **Rebuild Docker images** from scratch.
 - **Restart Docker services** in detached mode.
 
-The script intelligently detects your project's configuration and only performs Docker operations when appropriate.
+`torch` intelligently detects your project's configuration and only performs Docker operations when appropriate.
 
 ---
 
 ## Usage
 
-### TypeScript/JavaScript Version (`torch.ts`/`torch.js`)
+### Install in your project
 
-1. Install dependencies (first time only):
-   ```bash
-   npm install
-   ```
-2. To run directly with TypeScript (no build step):
-   ```bash
-   npm run torch:ts
-   ```
-3. To build and run the compiled JavaScript:
-   ```bash
-   npm run build
-   npm run torch
-   ```
+```bash
+npm install torch-it --save-dev
+```
+
+### Run in npm scripts
+
+Add a script to your project's `package.json`:
+
+```json
+{
+  "scripts": {
+    "torch": "torch",
+    "torch:test": "torch --test"
+  }
+}
+```
+
+Then run:
+
+```bash
+npm run torch
+```
+
+### Run without adding scripts
+
+```bash
+npx torch
+```
 
 ### Dry Run (`--test`)
 
 Use `--test` to preview what `torch` would do without deleting directories, cleaning caches, installing dependencies, or changing Docker resources.
 
 ```bash
-npm run torch:ts -- --test
-```
-
-Or with compiled output:
-
-```bash
-npm run build
-node dist/torch.js --test
+npx torch --test
 ```
 
 ---
@@ -64,7 +72,7 @@ node dist/torch.js --test
 
 ### Core Requirements
 
-- **Node.js** and a package manager (`npm`, `yarn`, or `pnpm`) for `torch.ts`/`torch.js`
+- **Node.js** and a package manager (`npm`, `yarn`, or `pnpm`)
 
 ### Optional Requirements
 
@@ -73,9 +81,9 @@ node dist/torch.js --test
 
 ---
 
-## Customization
+## Customization (for contributors)
 
-You can edit cleanup arrays in `src/constants/config.ts`:
+If you're working on this repo directly, you can edit cleanup arrays in `src/constants/config.ts`:
 
 - `BUILD_DIRS`: Common framework build output and artifact directories
 - `CACHE_DIRS`: Cache directories for package managers and tooling

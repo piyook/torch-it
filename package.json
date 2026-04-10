@@ -1,12 +1,20 @@
 {
-  "name": "torch",
+  "name": "torch-it",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "CLI to reset, clean, and rebuild Node.js project environments.",
+  "main": "dist/torch.js",
+  "bin": {
+    "torch": "dist/torch.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
-    "build": "esbuild src/torch.ts --bundle --outfile=dist/torch.js --platform=node --minify",
+    "build": "esbuild src/torch.ts --bundle --outfile=dist/torch.js --platform=node --format=cjs --minify --banner:js=\"#!/usr/bin/env node\"",
     "torch": "npm run build && node dist/torch.js",
     "torch:ts": "ts-node src/torch.ts",
+    "prepublishOnly": "npm run build",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -14,7 +22,12 @@
     "type": "git",
     "url": "git+https://github.com/piyook/torch.git"
   },
-  "keywords": [],
+  "keywords": [
+    "cli",
+    "cleanup",
+    "node",
+    "docker"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
@@ -23,12 +36,13 @@
   },
   "homepage": "https://github.com/piyook/torch#readme",
   "devDependencies": {
-    "@types/chalk": "^0.4.31",
     "@types/node": "^24.0.3",
-    "chalk": "^5.4.1",
     "esbuild": "^0.25.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3",
     "vitest": "^4.1.4"
+  },
+  "dependencies": {
+    "chalk": "^5.4.1"
   }
 }
