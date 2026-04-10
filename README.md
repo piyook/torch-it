@@ -87,7 +87,17 @@ npx torch --test
 
 ## Customization (for contributors)
 
-If you're working on this repo directly, you can edit cleanup arrays in `src/constants/config.ts`:
+For project-level customization (recommended), create `torchrc.json` in your project root:
+
+```json
+{
+  "customPaths": ["apps/web/.next", "services/api/tmp", ".turbo/cache", "coverage-final.json"]
+}
+```
+
+`customPaths` supports both directories and files. Torch will remove these in the same cleanup pass as the built-in targets.
+
+If you're working on this repo directly, you can also edit cleanup arrays in `src/constants/config.ts`:
 
 - `BUILD_DIRS`: Common framework build output and artifact directories
 - `CACHE_DIRS`: Cache directories for package managers and tooling
@@ -122,6 +132,10 @@ When `CUSTOM_DIRS` contains paths, `torch` will attempt to remove them in the sa
   3. Are your Docker configuration files valid?
 - If you see errors about missing `package.json`, initialize your project with `npm init -y` or add your project files.
 - For detailed information about any failures, check the `torch.log` file.
+- `torch.log` is generated during runs and should be ignored by git to avoid accidental commits. Add this to your `.gitignore`:
+  ```gitignore
+  torch.log
+  ```
 
 ---
 

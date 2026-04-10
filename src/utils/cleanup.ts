@@ -3,24 +3,63 @@ import * as fs from "fs";
 import { BUILD_DIRS, CACHE_DIRS, CUSTOM_DIRS } from "../constants/config";
 import { hasCmd, run } from "./system";
 
+const loadTorchRcCustomPaths = (): string[] => {
+  const torchRcPath = "torchrc.json";
+
+  if (!fs.existsSync(torchRcPath)) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(fs.readFileSync(torchRcPath, "utf8")) as {
+      customPaths?: unknown;
+      customDirs?: unknown;
+      customFiles?: unknown;
+    };
+
+    const rawPaths = [
+      ...(Array.isArray(parsed.customPaths) ? parsed.customPaths : []),
+      ...(Array.isArray(parsed.customDirs) ? parsed.customDirs : []),
+      ...(Array.isArray(parsed.customFiles) ? parsed.customFiles : []),
+    ];
+
+    return rawPaths
+      .filter((entry): entry is string => typeof entry === "string")
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length > 0);
+  } catch {
+    outputToConsole("Invalid torchrc.json (must be valid JSON) - skipping custom paths", "warn");
+    return [];
+  }
+};
+
 const cleanupBuildsAndCaches = () => {
   const isDryRun = process.env.TORCH_DRY_RUN === "1";
   let removedCount = 0;
+  const torchRcCustomPaths = loadTorchRcCustomPaths();
+  const cleanupTargets = [
+    ...new Set([...BUILD_DIRS, ...CACHE_DIRS, ...CUSTOM_DIRS, ...torchRcCustomPaths]),
+  ];
+
+  if (torchRcCustomPaths.length > 0) {
+    outputToConsole(`Loaded ${torchRcCustomPaths.length} custom path(s) from torchrc.json`, "info");
+  }
+
   outputToConsole("Scanning for build artifacts and cache directories...", "step");
-  [...BUILD_DIRS, ...CACHE_DIRS, ...CUSTOM_DIRS].forEach((dir) => {
-    if (fs.existsSync(dir)) {
-      outputToConsole(`${isDryRun ? "Would remove" : "Removing"} ${dir}...`, "step");
+  cleanupTargets.forEach((target) => {
+    if (fs.existsSync(target)) {
+      outputToConsole(`${isDryRun ? "Would remove" : "Removing"} ${target}...`, "step");
       try {
         if (!isDryRun) {
-          fs.rmSync(dir, { recursive: true, force: true });
+          fs.rmSync(target, { recursive: true, force: true });
         }
         outputToConsole(
-          `${dir} ${isDryRun ? "marked for removal (dry-run)" : "removed"}`,
+          `${target} ${isDryRun ? "marked for removal (dry-run)" : "removed"}`,
           "success",
         );
         removedCount++;
       } catch {
-        outputToConsole(`Failed to remove ${dir}`, "fail");
+        outputToConsole(`Failed to remove ${target}`, "fail");
       }
     }
   });
