@@ -70,8 +70,8 @@ Add a script to your project's `package.json`:
 ```json
 {
   "scripts": {
-    "torch-it": "torch-it",
-    "torch-it:test": "torch-it --test"
+    "torch": "torch-it",
+    "torch:test": "torch-it --test"
   }
 }
 ```
@@ -79,7 +79,7 @@ Add a script to your project's `package.json`:
 Then run:
 
 ```bash
-npm run torch-it
+npm run torch
 ```
 
 ### Run without adding scripts
