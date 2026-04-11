@@ -14,30 +14,54 @@ function hasDockerFiles(): boolean {
 function dockerCleanup() {
   const isDryRun = process.env.TORCH_DRY_RUN === "1";
   if (!hasDockerFiles()) {
-    outputToConsole("No Docker configuration found - skipping Docker operations", "info");
+    outputToConsole(
+      "No Docker configuration found - skipping Docker operations",
+      "info",
+    );
     return "NO_DOCKER";
   }
 
-  outputToConsole("Stopping Docker services and removing all resources...", "info");
+  outputToConsole(
+    "Stopping Docker services and removing all resources...",
+    "info",
+  );
 
   if (!hasCmd("docker")) {
-    outputToConsole("Docker is not installed - skipping Docker cleanup", "warn");
+    outputToConsole(
+      "Docker is not installed - skipping Docker cleanup",
+      "warn",
+    );
     return "NO_DOCKER";
   }
 
   if (!run("docker info", { silent: true })) {
-    outputToConsole("Docker daemon is not running - skipping Docker cleanup", "warn");
-    outputToConsole("You may need to start Docker manually and run cleanup later", "info");
+    outputToConsole(
+      "Docker daemon is not running - skipping Docker cleanup",
+      "warn",
+    );
+    outputToConsole(
+      "You may need to start Docker manually and run cleanup later",
+      "info",
+    );
     return "NO_DOCKER";
   }
   if (!run("docker compose ps", { silent: true })) {
-    outputToConsole("No Docker Compose services found - skipping Docker cleanup", "warn");
-    outputToConsole("This is normal if no services were previously running", "info");
+    outputToConsole(
+      "No Docker Compose services found - skipping Docker cleanup",
+      "warn",
+    );
+    outputToConsole(
+      "This is normal if no services were previously running",
+      "info",
+    );
     return "DOCKER_FAIL";
   }
 
   if (isDryRun) {
-    outputToConsole("Dry-run: would run 'docker compose down --rmi all --volumes'", "info");
+    outputToConsole(
+      "Dry-run: would run 'docker compose down --rmi all --volumes'",
+      "info",
+    );
     return "OK";
   }
 
@@ -57,11 +81,17 @@ function dockerRebuild() {
     return false;
   }
   if (!hasCmd("docker")) {
-    outputToConsole("Docker is not installed - skipping Docker rebuild", "warn");
+    outputToConsole(
+      "Docker is not installed - skipping Docker rebuild",
+      "warn",
+    );
     return false;
   }
   if (!run("docker info", { silent: true })) {
-    outputToConsole("Docker daemon is not running - skipping Docker rebuild", "warn");
+    outputToConsole(
+      "Docker daemon is not running - skipping Docker rebuild",
+      "warn",
+    );
     outputToConsole(
       "Start Docker manually and run 'docker-compose build --pull --no-cache' later",
       "info",
@@ -69,17 +99,26 @@ function dockerRebuild() {
     return false;
   }
 
-  outputToConsole("Building Docker resources (this may take a while...)...", "step");
+  outputToConsole(
+    "Building Docker resources (this may take a while...)...",
+    "step",
+  );
   console.log(
     `   ${COLOURS.YELLOW("⏳ Please be patient - pulling fresh images and building...")}`,
   );
   if (isDryRun) {
-    outputToConsole("Dry-run: would run 'docker-compose build --pull --no-cache'", "info");
+    outputToConsole(
+      "Dry-run: would run 'docker-compose build --pull --no-cache'",
+      "info",
+    );
     return true;
   }
 
   if (!run("docker-compose build --pull --no-cache")) {
-    outputToConsole("Docker build encountered issues - check torch-it.log for details", "fail");
+    outputToConsole(
+      "Docker build encountered issues - check torch-it.log for details",
+      "fail",
+    );
     return false;
   }
   return true;
@@ -93,7 +132,10 @@ function dockerLaunch() {
     return true;
   }
   if (!run("docker compose up -d")) {
-    outputToConsole("Failed to start Docker services - check torch-it.log for details", "fail");
+    outputToConsole(
+      "Failed to start Docker services - check torch-it.log for details",
+      "fail",
+    );
     return false;
   }
   return true;

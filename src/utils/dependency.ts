@@ -5,7 +5,10 @@ import { hasCmd, run } from "./system";
 const installDependencies = () => {
   const isDryRun = process.env.TORCH_DRY_RUN === "1";
   let installed = false;
-  outputToConsole("Detecting package manager and installing dependencies...", "step");
+  outputToConsole(
+    "Detecting package manager and installing dependencies...",
+    "step",
+  );
   if (fs.existsSync("pnpm-lock.yaml") && hasCmd("pnpm")) {
     outputToConsole("Using pnpm (detected pnpm-lock.yaml)...", "step");
     if (isDryRun || run("pnpm install")) {
