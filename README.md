@@ -45,13 +45,13 @@ React, Next.js, Vue, Vite, SvelteKit, React Native, Expo, and more.
 
 ### Docker Operations (Only if Docker is Configured)
 
-If your project includes either a `Dockerfile`, `docker-compose.yml`, or `docker-compose.yaml`, `torch` will also:
+If your project includes either a `Dockerfile`, `docker-compose.yml`, or `docker-compose.yaml`, `torch-it` will also:
 
 - **Stop and clean up Docker resources** (containers, images, volumes) if Docker is running.
 - **Rebuild Docker images** from scratch.
 - **Restart Docker services** in detached mode.
 
-`torch` intelligently detects your project's configuration and only performs Docker operations when appropriate.
+`torch-it` intelligently detects your project's configuration and only performs Docker operations when appropriate.
 
 ---
 
@@ -70,8 +70,8 @@ Add a script to your project's `package.json`:
 ```json
 {
   "scripts": {
-    "torch": "torch",
-    "torch:test": "torch --test"
+    "torch-it": "torch-it",
+    "torch-it:test": "torch-it --test"
   }
 }
 ```
@@ -79,21 +79,21 @@ Add a script to your project's `package.json`:
 Then run:
 
 ```bash
-npm run torch
+npm run torch-it
 ```
 
 ### Run without adding scripts
 
 ```bash
-npx torch
+npx torch-it
 ```
 
 ### Dry Run (`--test`)
 
-Use `--test` to preview what `torch` would do without deleting directories, cleaning caches, installing dependencies, or changing Docker resources.
+Use `--test` to preview what `torch-it` would do without deleting directories, cleaning caches, installing dependencies, or changing Docker resources.
 
 ```bash
-npx torch --test
+npx torch-it --test
 ```
 
 ---
@@ -121,12 +121,12 @@ For project-level customization (recommended), create `torchrc.json` in your pro
 }
 ```
 
-`customPaths` supports both directories and files. Torch will remove these in the same cleanup pass as the built-in targets.
+`customPaths` supports both directories and files. torch-it will remove these in the same cleanup pass as the built-in targets.
 
 
 ## Logging   
 
-`torch` outputs information to the console and writes logs to `torch.log` in your project root so you can troubleshoot any issues and see what was removed and reinstalled.
+`torch-it` outputs information to the console and writes logs to `torch-it.log` in your project root so you can troubleshoot any issues and see what was removed and reinstalled.
 
 ## Troubleshooting
 
@@ -135,11 +135,11 @@ For project-level customization (recommended), create `torchrc.json` in your pro
   2. Does your project have Docker configuration files?
   3. Are your Docker configuration files valid?
 - If you see errors about missing `package.json`, initialize your project with `npm init -y` or add your project files.
-- For detailed information about any failures, check the `torch.log` file.
-- `torch.log` is generated during runs and should be ignored by git to avoid accidental commits. Add this to your `.gitignore`:   
+- For detailed information about any failures, check the `torch-it.log` file.
+- `torch-it.log` is generated during runs and should be ignored by git to avoid accidental commits. Add this to your `.gitignore`:   
 
   ```gitignore
-  torch.log
+  torch-it.log
   ```
 
 ---

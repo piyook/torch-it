@@ -79,7 +79,7 @@ function dockerRebuild() {
   }
 
   if (!run("docker-compose build --pull --no-cache")) {
-    outputToConsole("Docker build encountered issues - check torch.log for details", "fail");
+    outputToConsole("Docker build encountered issues - check torch-it.log for details", "fail");
     return false;
   }
   return true;
@@ -93,7 +93,7 @@ function dockerLaunch() {
     return true;
   }
   if (!run("docker compose up -d")) {
-    outputToConsole("Failed to start Docker services - check torch.log for details", "fail");
+    outputToConsole("Failed to start Docker services - check torch-it.log for details", "fail");
     return false;
   }
   return true;
