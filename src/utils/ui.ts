@@ -28,7 +28,10 @@ function outputToConsole(msg: string, type: string) {
 }
 
 function printBanner() {
-  printBox([`                  ${ICONS.TARGET} TORCH LIT ${ICONS.ROCKET}`], COLOURS.PURPLE);
+  printBox(
+    [`                  ${ICONS.TARGET} TORCH LIT ${ICONS.ROCKET}`],
+    COLOURS.PURPLE,
+  );
   const flame = `
 ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) )
   (( (( (( (( (( (( (( (( (( (( (( (( (( ((
@@ -53,7 +56,10 @@ function printRisingFromAshesBanner() {
   );
 }
 
-function printBox(lines: string[], color: typeof chalkInstance = COLOURS.GREEN): void {
+function printBox(
+  lines: string[],
+  color: typeof chalkInstance = COLOURS.GREEN,
+): void {
   const width = 56;
   const border = color("═".repeat(width));
   console.log(color("╔" + border + "╗"));

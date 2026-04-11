@@ -61,7 +61,7 @@ export const CACHE_DIRS = [
 ] as const;
 
 export const CUSTOM_DIRS = [
-  // Add project-specific folders/files to remove during torch.
+  // Add project-specific folders/files to remove during torch-it.
   // Examples:
   // "apps/web/.next",
   // "services/api/tmp",

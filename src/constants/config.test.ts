@@ -3,12 +3,19 @@ import { BUILD_DIRS, CACHE_DIRS, CUSTOM_DIRS } from "./config";
 
 describe("cleanup config directories", () => {
   it("includes common frontend build artifacts", () => {
-    expect(BUILD_DIRS).toEqual(expect.arrayContaining([".next", ".vite", ".svelte-kit"]));
+    expect(BUILD_DIRS).toEqual(
+      expect.arrayContaining([".next", ".vite", ".svelte-kit"]),
+    );
   });
 
   it("includes common package manager cache directories", () => {
     expect(CACHE_DIRS).toEqual(
-      expect.arrayContaining([".pnpm-store", ".yarn/cache", ".npm", "node_modules/.cache"]),
+      expect.arrayContaining([
+        ".pnpm-store",
+        ".yarn/cache",
+        ".npm",
+        "node_modules/.cache",
+      ]),
     );
   });
 

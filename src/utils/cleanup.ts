@@ -28,7 +28,10 @@ const loadTorchRcCustomPaths = (): string[] => {
       .map((entry) => entry.trim())
       .filter((entry) => entry.length > 0);
   } catch {
-    outputToConsole("Invalid torchrc.json (must be valid JSON) - skipping custom paths", "warn");
+    outputToConsole(
+      "Invalid torchrc.json (must be valid JSON) - skipping custom paths",
+      "warn",
+    );
     return [];
   }
 };
@@ -37,12 +40,17 @@ const cleanupBuildsAndCaches = () => {
   const isDryRun = process.env.TORCH_DRY_RUN === "1";
   let removedCount = 0;
   const torchRcCustomPaths = loadTorchRcCustomPaths();
-  const defaultTargets = [...new Set([...BUILD_DIRS, ...CACHE_DIRS, ...CUSTOM_DIRS])];
+  const defaultTargets = [
+    ...new Set([...BUILD_DIRS, ...CACHE_DIRS, ...CUSTOM_DIRS]),
+  ];
   const customTargets = [...new Set(torchRcCustomPaths)];
 
   const cleanupTarget = (target: string) => {
     if (fs.existsSync(target)) {
-      outputToConsole(`${isDryRun ? "Would remove" : "Removing"} ${target}...`, "step");
+      outputToConsole(
+        `${isDryRun ? "Would remove" : "Removing"} ${target}...`,
+        "step",
+      );
       try {
         if (!isDryRun) {
           fs.rmSync(target, { recursive: true, force: true });
@@ -58,11 +66,17 @@ const cleanupBuildsAndCaches = () => {
     }
   };
 
-  outputToConsole("Scanning for build artifacts and cache directories...", "step");
+  outputToConsole(
+    "Scanning for build artifacts and cache directories...",
+    "step",
+  );
   defaultTargets.forEach(cleanupTarget);
 
   if (customTargets.length > 0) {
-    outputToConsole("Deleting user defined custom directories and files", "step");
+    outputToConsole(
+      "Deleting user defined custom directories and files",
+      "step",
+    );
     customTargets.forEach(cleanupTarget);
   }
 
@@ -83,7 +97,10 @@ const cleanupPackageManagerCaches = () => {
   let cacheCleaned = false;
   if (hasCmd("npm")) {
     if (isDryRun || run("npm cache clean --force")) {
-      outputToConsole(isDryRun ? "Dry-run: would clean npm cache" : "npm cache cleaned", "success");
+      outputToConsole(
+        isDryRun ? "Dry-run: would clean npm cache" : "npm cache cleaned",
+        "success",
+      );
       cacheCleaned = true;
     }
   }
@@ -106,7 +123,10 @@ const cleanupPackageManagerCaches = () => {
     }
   }
   if (!cacheCleaned)
-    outputToConsole("No package manager caches cleaned (tools not available)", "info");
+    outputToConsole(
+      "No package manager caches cleaned (tools not available)",
+      "info",
+    );
   return cacheCleaned;
 };
 

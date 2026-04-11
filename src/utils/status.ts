@@ -46,7 +46,7 @@ const statusMessage = (torchRecord: TorchRecord) => {
     `${dockerBuild}`,
     `${dockerLaunch}`,
     "",
-    `${ICONS.CLIPBOARD} Check torch.log for detailed logs`,
+    `${ICONS.CLIPBOARD} Check torch-it.log for detailed logs`,
   ]);
 };
 

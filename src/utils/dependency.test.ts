@@ -27,7 +27,9 @@ describe("installDependencies", () => {
   });
 
   it("uses pnpm when pnpm lockfile exists and pnpm is available", () => {
-    mockedExistsSync.mockImplementation((filePath) => filePath === "pnpm-lock.yaml");
+    mockedExistsSync.mockImplementation(
+      (filePath) => filePath === "pnpm-lock.yaml",
+    );
     mockedHasCmd.mockImplementation((cmd) => cmd === "pnpm");
     mockedRun.mockReturnValue(true);
 
