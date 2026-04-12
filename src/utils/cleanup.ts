@@ -2,48 +2,84 @@ import { outputToConsole } from "./ui";
 import * as fs from "fs";
 import { BUILD_DIRS, CACHE_DIRS, CUSTOM_DIRS } from "../constants/config";
 import { hasCmd, run } from "./system";
+import type { TorchRcConfig } from "../types";
+import { DEFAULT_TORCH_RC_CONFIG } from "../types";
 
-const loadTorchRcCustomPaths = (): string[] => {
+export const loadTorchRcConfig = (): TorchRcConfig => {
   const torchRcPath = "torchrc.json";
 
   if (!fs.existsSync(torchRcPath)) {
-    return [];
+    return {};
   }
 
   try {
-    const parsed = JSON.parse(fs.readFileSync(torchRcPath, "utf8")) as {
-      customPaths?: unknown;
-      customDirs?: unknown;
-      customFiles?: unknown;
-    };
-
-    const rawPaths = [
-      ...(Array.isArray(parsed.customPaths) ? parsed.customPaths : []),
-      ...(Array.isArray(parsed.customDirs) ? parsed.customDirs : []),
-      ...(Array.isArray(parsed.customFiles) ? parsed.customFiles : []),
-    ];
-
-    return rawPaths
-      .filter((entry): entry is string => typeof entry === "string")
-      .map((entry) => entry.trim())
-      .filter((entry) => entry.length > 0);
+    const parsed = JSON.parse(
+      fs.readFileSync(torchRcPath, "utf8"),
+    ) as TorchRcConfig;
+    return parsed;
   } catch {
     outputToConsole(
-      "Invalid torchrc.json (must be valid JSON) - skipping custom paths",
+      "Invalid torchrc.json (must be valid JSON) - skipping custom config",
       "warn",
     );
-    return [];
+    return {};
   }
+};
+
+export const getTorchRcConfig = (): Required<TorchRcConfig> => {
+  const userConfig = loadTorchRcConfig();
+  return {
+    customPaths: userConfig.customPaths ?? DEFAULT_TORCH_RC_CONFIG.customPaths,
+    customDirs: userConfig.customDirs ?? DEFAULT_TORCH_RC_CONFIG.customDirs,
+    customFiles: userConfig.customFiles ?? DEFAULT_TORCH_RC_CONFIG.customFiles,
+    protectedPaths:
+      userConfig.protectedPaths ?? DEFAULT_TORCH_RC_CONFIG.protectedPaths,
+    dockerMode: userConfig.dockerMode ?? DEFAULT_TORCH_RC_CONFIG.dockerMode,
+  };
+};
+
+const loadTorchRcCustomPaths = (): string[] => {
+  const config = getTorchRcConfig();
+
+  const rawPaths = [
+    ...config.customPaths,
+    ...config.customDirs,
+    ...config.customFiles,
+  ];
+
+  return rawPaths
+    .filter((entry): entry is string => typeof entry === "string")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
 };
 
 const cleanupBuildsAndCaches = () => {
   const isDryRun = process.env.TORCH_DRY_RUN === "1";
   let removedCount = 0;
+  const torchRcConfig = getTorchRcConfig();
   const torchRcCustomPaths = loadTorchRcCustomPaths();
+  const protectedPaths = torchRcConfig.protectedPaths;
+
   const defaultTargets = [
     ...new Set([...BUILD_DIRS, ...CACHE_DIRS, ...CUSTOM_DIRS]),
   ];
   const customTargets = [...new Set(torchRcCustomPaths)];
+
+  // Filter out protected paths
+  const filteredDefaultTargets = defaultTargets.filter(
+    (target) =>
+      !protectedPaths.some(
+        (protectedPath) =>
+          target === protectedPath || target.startsWith(protectedPath + "/"),
+      ),
+  );
+  const filteredCustomTargets = customTargets.filter(
+    (target) =>
+      !protectedPaths.some(
+        (protectedPath) =>
+          target === protectedPath || target.startsWith(protectedPath + "/"),
+      ),
+  );
 
   const cleanupTarget = (target: string) => {
     if (fs.existsSync(target)) {
@@ -70,14 +106,26 @@ const cleanupBuildsAndCaches = () => {
     "Scanning for build artifacts and cache directories...",
     "step",
   );
-  defaultTargets.forEach(cleanupTarget);
+  filteredDefaultTargets.forEach(cleanupTarget);
 
-  if (customTargets.length > 0) {
+  if (filteredCustomTargets.length > 0) {
     outputToConsole(
       "Deleting user defined custom directories and files",
       "step",
     );
-    customTargets.forEach(cleanupTarget);
+    filteredCustomTargets.forEach(cleanupTarget);
+  }
+
+  // Report protected paths
+  const totalProtected =
+    defaultTargets.length -
+    filteredDefaultTargets.length +
+    (customTargets.length - filteredCustomTargets.length);
+  if (totalProtected > 0) {
+    outputToConsole(
+      `Skipped ${totalProtected} protected path(s) from torchrc.json`,
+      "info",
+    );
   }
 
   if (removedCount === 0) {
