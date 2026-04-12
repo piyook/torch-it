@@ -1,6 +1,6 @@
 {
   "name": "torch-it",
-  "version": "2.1.2",
+  "version": "2.2.0",
   "description": "CLI to reset, clean, and rebuild Node.js project environments.",
   "keywords": [
     "cleanup",
@@ -42,9 +42,7 @@
     "test": "tsc --noEmit && vitest run",
     "test:watch": "vitest"
   },
-  "dependencies": {
-    "chalk": "^5.6.2"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@commitlint/cli": "^20.5.0",
     "@commitlint/config-conventional": "^20.5.0",
