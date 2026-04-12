@@ -6,3 +6,19 @@ export type TorchRecord = {
   dockerRebuild: boolean;
   dockerLaunch: boolean;
 };
+
+export type TorchRcConfig = {
+  customPaths?: string[];
+  customDirs?: string[];
+  customFiles?: string[];
+  protectedPaths?: string[];
+  dockerMode?: boolean;
+};
+
+export const DEFAULT_TORCH_RC_CONFIG: Required<TorchRcConfig> = {
+  customPaths: [],
+  customDirs: [],
+  customFiles: [],
+  protectedPaths: [],
+  dockerMode: true,
+};

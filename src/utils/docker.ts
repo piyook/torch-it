@@ -2,6 +2,7 @@ import * as fs from "fs";
 import { outputToConsole } from "./ui";
 import { hasCmd, run } from "./system";
 import { COLOURS } from "../constants/constants";
+import { getTorchRcConfig } from "./cleanup";
 
 function hasDockerFiles(): boolean {
   return (
@@ -12,6 +13,15 @@ function hasDockerFiles(): boolean {
 }
 
 function dockerCleanup() {
+  const config = getTorchRcConfig();
+  if (config.dockerMode === false) {
+    outputToConsole(
+      "Docker mode disabled in torchrc.json - skipping Docker operations",
+      "info",
+    );
+    return "NO_DOCKER";
+  }
+
   const isDryRun = process.env.TORCH_DRY_RUN === "1";
   if (!hasDockerFiles()) {
     outputToConsole(
@@ -76,6 +86,11 @@ function dockerCleanup() {
 }
 
 function dockerRebuild() {
+  const config = getTorchRcConfig();
+  if (config.dockerMode === false) {
+    return false;
+  }
+
   const isDryRun = process.env.TORCH_DRY_RUN === "1";
   if (!hasDockerFiles()) {
     return false;
@@ -125,6 +140,11 @@ function dockerRebuild() {
 }
 
 function dockerLaunch() {
+  const config = getTorchRcConfig();
+  if (config.dockerMode === false) {
+    return false;
+  }
+
   const isDryRun = process.env.TORCH_DRY_RUN === "1";
   outputToConsole("Starting Docker services in detached mode...", "step");
   if (isDryRun) {
