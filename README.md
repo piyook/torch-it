@@ -4,7 +4,7 @@
 [![tests workflow](https://github.com/piyook/torch-it/actions/workflows/tests.yaml/badge.svg)](https://github.com/piyook/torch-it/actions/workflows/tests.yaml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A powerful, all-in-one TypeScript tool to **reset, clean, and rebuild** your Node.js (and optionally Dockerized) project environments with a single command.
+A powerful, all-in-one, fully customizable tool to **reset, clean, and rebuild** your Node.js (and optionally Dockerized) project environments with a single command.
 
 ---
 
@@ -14,7 +14,7 @@ You'd like to kick it 🥾?
 Hit it with a hammer 🔨?   
 Turn it off and on again 📺?     
 
-Well better still - try torching it instead 🔥🔥🔥🔥🔥🔥.   
+Well better still - try torching it 🔥🔥🔥🔥🔥🔥   
 
 ## What does `torch-it` do?
 
