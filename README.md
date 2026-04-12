@@ -4,7 +4,7 @@
 [![tests workflow](https://github.com/piyook/torch-it/actions/workflows/tests.yaml/badge.svg)](https://github.com/piyook/torch-it/actions/workflows/tests.yaml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A powerful, all-in-one, fully customizable tool to **reset, clean, and rebuild** your Node.js (and optionally Dockerized) project environments with a single command.
+A powerful, all-in-one, zero-dependency, fully customizable tool to **reset, clean, and rebuild** your Node.js (and optionally Dockerized) project environments with a single command.
 
 ---
 
@@ -27,6 +27,8 @@ It's surprising how often this just fixes things. 🤞
 - **One command** to clear all local caches, delete `node_modules`, and reinstall dependencies
 - **Fully customizable** — specify any directories or files to delete
 - **Docker support** — removes containers, images, and volumes and rebuilds from scratch 🐳
+- **Cross-platform** — works on Windows, Linux, and macOS
+- **Zero-dependency** — no additional packages required
 
 ## Supported Frameworks
 

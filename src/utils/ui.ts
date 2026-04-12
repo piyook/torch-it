@@ -1,4 +1,3 @@
-import chalkInstance from "chalk";
 import { COLOURS, ICONS } from "../constants/constants";
 import { logger } from "./logger";
 function outputToConsole(msg: string, type: string) {
@@ -58,7 +57,7 @@ function printRisingFromAshesBanner() {
 
 function printBox(
   lines: string[],
-  color: typeof chalkInstance = COLOURS.GREEN,
+  color: (text: string) => string = COLOURS.GREEN,
 ): void {
   const width = 56;
   const border = color("═".repeat(width));
