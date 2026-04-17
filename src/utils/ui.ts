@@ -55,11 +55,15 @@ function printRisingFromAshesBanner() {
   );
 }
 
+function getVisibleLength(text: string): number {
+  return text.replace(/\u001b\[[0-9;]*m/g, "").length;
+}
+
 function printBox(
   lines: string[],
   color: (text: string) => string = COLOURS.GREEN,
 ): void {
-  const width = 56;
+  const width = Math.max(56, ...lines.map((line) => getVisibleLength(line)));
   const border = color("═".repeat(width));
   console.log(color("╔" + border + "╗"));
   lines.forEach((line) => {
@@ -67,7 +71,7 @@ function printBox(
     if (line.trim() === "") {
       console.log(color("║" + " ".repeat(width) + "║"));
     } else {
-      const pad = width - line.length;
+      const pad = width - getVisibleLength(line);
       console.log(color("║" + line + " ".repeat(pad) + "║"));
     }
   });

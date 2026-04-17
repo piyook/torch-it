@@ -42,6 +42,7 @@ const torchRecord: TorchRecord = {
   dependencyInstall: false,
   dockerRebuild: false,
   dockerLaunch: false,
+  logfile: torchRcConfig.logfile,
 };
 
 // --- Docker Cleanup ---

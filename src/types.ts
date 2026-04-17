@@ -5,6 +5,7 @@ export type TorchRecord = {
   dependencyInstall: boolean;
   dockerRebuild: boolean;
   dockerLaunch: boolean;
+  logfile?: boolean;
 };
 
 export type TorchRcConfig = {
