@@ -9,9 +9,10 @@ import {
   cleanupBuildsAndCaches,
   cleanupPackageManagerCaches,
 } from "./utils/cleanup";
-import { clearLog } from "./utils/logger";
+import { clearLog, setLoggerEnabled } from "./utils/logger";
 import { installDependencies } from "./utils/dependency";
 import type { TorchRecord } from "./types";
+import { getTorchRcConfig } from "./utils/cleanup";
 import { statusMessage } from "./utils/status";
 
 // --- Initialisation ---
@@ -21,7 +22,11 @@ if (isDryRun) {
   process.env.TORCH_DRY_RUN = "1";
 }
 
-clearLog();
+const torchRcConfig = getTorchRcConfig();
+setLoggerEnabled(torchRcConfig.logfile);
+if (torchRcConfig.logfile) {
+  clearLog();
+}
 printBanner();
 if (isDryRun) {
   outputToConsole(

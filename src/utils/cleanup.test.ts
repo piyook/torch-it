@@ -82,6 +82,7 @@ describe("getTorchRcConfig", () => {
       customFiles: [],
       protectedPaths: [],
       dockerMode: true,
+      logfile: true,
     });
   });
 
@@ -91,6 +92,7 @@ describe("getTorchRcConfig", () => {
       JSON.stringify({
         protectedPaths: ["important/"],
         dockerMode: false,
+        logfile: false,
       }),
     );
 
@@ -102,6 +104,7 @@ describe("getTorchRcConfig", () => {
       customFiles: [],
       protectedPaths: ["important/"],
       dockerMode: false,
+      logfile: false,
     });
   });
 
@@ -117,6 +120,7 @@ describe("getTorchRcConfig", () => {
       customFiles: [],
       protectedPaths: [],
       dockerMode: true,
+      logfile: true,
     });
   });
 });
