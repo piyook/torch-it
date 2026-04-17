@@ -5,6 +5,7 @@ export type TorchRecord = {
   dependencyInstall: boolean;
   dockerRebuild: boolean;
   dockerLaunch: boolean;
+  logfile?: boolean;
 };
 
 export type TorchRcConfig = {
@@ -13,6 +14,7 @@ export type TorchRcConfig = {
   customFiles?: string[];
   protectedPaths?: string[];
   dockerMode?: boolean;
+  logfile?: boolean;
 };
 
 export const DEFAULT_TORCH_RC_CONFIG: Required<TorchRcConfig> = {
@@ -21,4 +23,5 @@ export const DEFAULT_TORCH_RC_CONFIG: Required<TorchRcConfig> = {
   customFiles: [],
   protectedPaths: [],
   dockerMode: true,
+  logfile: true,
 };

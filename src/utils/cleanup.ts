@@ -35,6 +35,7 @@ export const getTorchRcConfig = (): Required<TorchRcConfig> => {
     protectedPaths:
       userConfig.protectedPaths ?? DEFAULT_TORCH_RC_CONFIG.protectedPaths,
     dockerMode: userConfig.dockerMode ?? DEFAULT_TORCH_RC_CONFIG.dockerMode,
+    logfile: userConfig.logfile ?? DEFAULT_TORCH_RC_CONFIG.logfile,
   };
 };
 

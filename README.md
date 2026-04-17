@@ -106,20 +106,22 @@ For project-level customization (recommended), create `torchrc.json` in your pro
 {
   "customPaths": ["apps/web/.next", "services/api/tmp", ".turbo/cache", "coverage-final.json"],
   "protectedPaths": ["important-data/", "config/production.json"],
-  "dockerMode": true
+  "dockerMode": true,
+  "logfile": false
 }
 ```
 
 - `customPaths`: Array of additional directories and files to remove during cleanup. Supports both directories and files. torch-it will remove these in the same cleanup pass as the built-in targets.
 - `protectedPaths`: Array of directories and files to skip during cleanup. These paths will be preserved even if they match built-in or custom cleanup targets.
 - `dockerMode`: Boolean flag to enable/disable Docker operations. Set to `false` to skip all Docker cleanup, rebuild, and launch steps. Defaults to `true`.
+- `logfile`: Boolean flag to enable or disable writing runtime output to `torch-it.log`. Set to `false` to disable file logging. Defaults to `true`.
 
 **Note**: The `torchrc.json` file is completely optional. torch-it works with sensible defaults out of the box. Only create this file if you need to customize the behavior.
 
 
 ## Logging   
 
-`torch-it` outputs information to the console and writes logs to `torch-it.log` in your project root so you can troubleshoot any issues and see what was removed and reinstalled.  
+`torch-it` outputs information to the console and writes logs to `torch-it.log` in your project root by default so you can troubleshoot any issues and see what was removed and reinstalled. If you set `logfile` to `false` in `torchrc.json`, no log file will be written.
 
 This file should be ignored by git to avoid accidental commits. Add this to your `.gitignore`:   
 

@@ -46,7 +46,9 @@ const statusMessage = (torchRecord: TorchRecord) => {
     `${dockerBuild}`,
     `${dockerLaunch}`,
     "",
-    `${ICONS.CLIPBOARD} Check torch-it.log for detailed logs`,
+    torchRecord.logfile === false
+      ? `${ICONS.CLIPBOARD} Logging to torch-it.log is disabled; set "logfile": true in torchrc.json to enable it`
+      : `${ICONS.CLIPBOARD} Check torch-it.log for detailed logs`,
   ]);
 };
 

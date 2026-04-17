@@ -50,4 +50,23 @@ describe("statusMessage", () => {
     expect(lines).toContain("🐳 Docker containers rebuilt from scratch");
     expect(lines).toContain("🔥 Services running in detached mode");
   });
+
+  it("informs user that file logging is disabled when logfile is false", () => {
+    const record: TorchRecord = {
+      dockerClean: "NO_DOCKER",
+      buildAndCacheClean: true,
+      packageManagerClean: true,
+      dependencyInstall: true,
+      dockerRebuild: false,
+      dockerLaunch: false,
+      logfile: false,
+    };
+
+    statusMessage(record);
+
+    const lines = mockedPrintBox.mock.calls[0][0];
+    expect(lines.join(" ")).toContain(
+      'Logging to torch-it.log is disabled; set "logfile": true in torchrc.json to enable it',
+    );
+  });
 });
