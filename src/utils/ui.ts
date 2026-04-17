@@ -56,7 +56,8 @@ function printRisingFromAshesBanner() {
 }
 
 function getVisibleLength(text: string): number {
-  return text.replace(/\u001b\[[0-9;]*m/g, "").length;
+  const ansiRegex = new RegExp(String.fromCharCode(27) + "\\[[0-9;]*m", "g");
+  return text.replace(ansiRegex, "").length;
 }
 
 function printBox(

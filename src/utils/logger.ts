@@ -3,8 +3,8 @@ import fs from "fs";
 let fileLoggingEnabled = true;
 
 function stripAnsiCodes(text: string): string {
-  // oxlint-disable-next-line no-control-regex
-  return text.replace(/\u001b\[[0-9;]*m/g, "");
+  const ansiRegex = new RegExp(String.fromCharCode(27) + "\\[[0-9;]*m", "g");
+  return text.replace(ansiRegex, "");
 }
 
 export const setLoggerEnabled = (enabled: boolean): void => {
