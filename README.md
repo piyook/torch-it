@@ -18,7 +18,7 @@ Well better still - try torching it 🔥🔥🔥🔥🔥🔥
 
 ## What does `torch-it` do?
 
-Nuke your local caches, dependencies, and Docker environment — then rebuild everything from a clean slate, **with a single command**.
+Intelligently nukes your local caches, dependencies, and Docker environment depending on your framework and package manager — then rebuilds everything from a clean slate, **with a single command**.
 
 It's surprising how often this just fixes things. 🤞
 
@@ -28,7 +28,7 @@ It's surprising how often this just fixes things. 🤞
 - **Fully customizable** — specify any directories or files to delete
 - **Docker support** — removes containers, images, and volumes and rebuilds from scratch 🐳
 - **Cross-platform** — works on Windows, Linux, and macOS
-- **Zero-dependency** — no additional packages required
+- **Zero-dependency** — lightweight and no additional packages required
 
 ## Supported Frameworks
 
@@ -59,32 +59,47 @@ If your project includes either a `Dockerfile`, `docker-compose.yml`, or `docker
 
 ## Usage
 
-### Install in your project
+### Global Installation (Recommended)
+
+Install torch-it globally to run it from anywhere:
+
+```bash
+npm install -g torch-it
+```
+
+Then, in your project root,simply run:
+
+```bash
+torch-it
+```
+
+For per-project customisation, create a `torchrc.json` file in your project root (see Customization section below).
+
+### Per-Project Installation (Alternative)
+
+If you prefer to install torch-it per project:
 
 ```bash
 npm install torch-it --save-dev
 ```
 
-### Run in npm scripts
+Then run via npm scripts or npx:
 
-Add a script to your project's `package.json`:
+Add to package.json scripts:
 
 ```json
 {
   "scripts": {
-    "torch": "torch-it",
-    "torch:test": "torch-it --test"
+    "torch": "torch-it"
   }
 }
 ```
-
-Then run:
 
 ```bash
 npm run torch
 ```
 
-### Run without adding scripts
+Or directly:
 
 ```bash
 npx torch-it
@@ -92,15 +107,15 @@ npx torch-it
 
 ### Dry Run (`--test`)
 
-Use `--test` to preview what `torch-it` would do without deleting directories, cleaning caches, installing dependencies, or changing Docker resources.
+Use `--test` to preview what `torch-it` would do without deleting directories, cleaning caches, installing dependencies, or changing Docker resources. Results are saved to the `torch-it.log` file.
 
 ```bash
-npx torch-it --test
+torch-it --test
 ```
 ---
 ## Customization
 
-For project-level customization (recommended), create `torchrc.json` in your project root:
+For project-level customization, create a local `torchrc.json` file in your project root with the following structure:
 
 ```json
 {
@@ -116,7 +131,7 @@ For project-level customization (recommended), create `torchrc.json` in your pro
 - `dockerMode`: Boolean flag to enable/disable Docker operations. Set to `false` to skip all Docker cleanup, rebuild, and launch steps. Defaults to `true`.
 - `logfile`: Boolean flag to enable or disable writing runtime output to `torch-it.log`. Set to `false` to disable file logging. Defaults to `true`.
 
-**Note**: The `torchrc.json` file is completely optional. torch-it works with sensible defaults out of the box. Only create this file if you need to customize the behavior.
+**Note**: The local `torchrc.json` file is completely optional. torch-it works with sensible defaults out of the box. Only create this file if you need to customize the behavior.
 
 
 ## Logging   
