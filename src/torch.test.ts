@@ -33,7 +33,6 @@ vi.mock("./utils/status", () => ({
   statusMessage: vi.fn(),
 }));
 
-import * as fs from "fs";
 import { dockerCleanup, dockerRebuild, dockerLaunch } from "./utils/docker";
 import {
   cleanupBuildsAndCaches,
@@ -43,13 +42,7 @@ import {
   loadTorchRcCustomPaths,
 } from "./utils/cleanup";
 import { installDependencies } from "./utils/dependency";
-import {
-  printBanner,
-  outputToConsole,
-  printRisingFromAshesBanner,
-} from "./utils/ui";
-import { setLoggerEnabled, clearLog } from "./utils/logger";
-import { statusMessage } from "./utils/status";
+import { outputToConsole, printRisingFromAshesBanner } from "./utils/ui";
 
 const mockedDockerCleanup = vi.mocked(dockerCleanup);
 const mockedDockerRebuild = vi.mocked(dockerRebuild);
