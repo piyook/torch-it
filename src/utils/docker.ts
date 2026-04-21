@@ -91,6 +91,14 @@ function dockerRebuild() {
     return false;
   }
 
+  if (config.rebuild === false) {
+    outputToConsole(
+      "Rebuild disabled in torchrc.json - skipping Docker rebuild",
+      "info",
+    );
+    return false;
+  }
+
   const isDryRun = process.env.TORCH_DRY_RUN === "1";
   if (!hasDockerFiles()) {
     return false;

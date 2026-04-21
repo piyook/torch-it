@@ -22,7 +22,9 @@ if (isDryRun) {
   process.env.TORCH_DRY_RUN = "1";
 }
 
-const torchRcConfig = getTorchRcConfig();
+const torchRcConfig = getTorchRcConfig(
+  cliArgs.filter((arg) => arg !== "--test"),
+);
 setLoggerEnabled(torchRcConfig.logfile);
 if (torchRcConfig.logfile) {
   clearLog();
@@ -58,14 +60,31 @@ outputToConsole("Cleaning package manager caches...", "step");
 torchRecord.packageManagerClean = cleanupPackageManagerCaches();
 
 // --- Dependency Installation ---
-printRisingFromAshesBanner();
-outputToConsole(`${ICONS.BUILD} DEPENDENCY INSTALLATION`, "step");
-torchRecord.dependencyInstall = installDependencies();
+if (torchRcConfig.rebuild !== false) {
+  printRisingFromAshesBanner();
+  outputToConsole(`${ICONS.BUILD} DEPENDENCY INSTALLATION`, "step");
+  torchRecord.dependencyInstall = installDependencies();
+} else {
+  outputToConsole(
+    "Rebuild disabled - skipping dependency installation",
+    "info",
+  );
+  torchRecord.dependencyInstall = false;
+}
 
 // --- Docker Rebuild ---
-if (torchRecord.dockerClean) {
+if (
+  torchRecord.dockerClean !== "NO_DOCKER" &&
+  torchRcConfig.rebuild !== false
+) {
   outputToConsole(`${ICONS.BUILD} DOCKER REBUILD`, "step");
   torchRecord.dockerRebuild = dockerRebuild();
+} else if (
+  torchRecord.dockerClean !== "NO_DOCKER" &&
+  torchRcConfig.rebuild === false
+) {
+  outputToConsole("Rebuild disabled - skipping Docker rebuild", "info");
+  torchRecord.dockerRebuild = false;
 }
 
 // --- Docker Launch ---

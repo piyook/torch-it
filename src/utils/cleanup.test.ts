@@ -16,7 +16,11 @@ vi.mock("./system", () => ({
 }));
 
 import * as fs from "fs";
-import { cleanupBuildsAndCaches, getTorchRcConfig } from "./cleanup";
+import {
+  cleanupBuildsAndCaches,
+  getTorchRcConfig,
+  getTorchRcConfigFromFile,
+} from "./cleanup";
 
 const mockedExistsSync = vi.mocked(fs.existsSync);
 const mockedRmSync = vi.mocked(fs.rmSync);
@@ -74,7 +78,7 @@ describe("getTorchRcConfig", () => {
   it("returns default config when torchrc.json does not exist", () => {
     mockedExistsSync.mockReturnValue(false);
 
-    const config = getTorchRcConfig();
+    const config = getTorchRcConfigFromFile();
 
     expect(config).toEqual({
       customPaths: [],
@@ -83,6 +87,7 @@ describe("getTorchRcConfig", () => {
       protectedPaths: [],
       dockerMode: true,
       logfile: true,
+      rebuild: true,
     });
   });
 
@@ -96,7 +101,7 @@ describe("getTorchRcConfig", () => {
       }),
     );
 
-    const config = getTorchRcConfig();
+    const config = getTorchRcConfigFromFile();
 
     expect(config).toEqual({
       customPaths: [],
@@ -105,6 +110,7 @@ describe("getTorchRcConfig", () => {
       protectedPaths: ["important/"],
       dockerMode: false,
       logfile: false,
+      rebuild: true,
     });
   });
 
@@ -112,7 +118,7 @@ describe("getTorchRcConfig", () => {
     mockedExistsSync.mockReturnValue(true);
     mockedReadFileSync.mockReturnValue("invalid json");
 
-    const config = getTorchRcConfig();
+    const config = getTorchRcConfigFromFile();
 
     expect(config).toEqual({
       customPaths: [],
@@ -121,6 +127,27 @@ describe("getTorchRcConfig", () => {
       protectedPaths: [],
       dockerMode: true,
       logfile: true,
+      rebuild: true,
+    });
+  });
+
+  it("overrides config with CLI arguments", () => {
+    mockedExistsSync.mockReturnValue(false);
+
+    const config = getTorchRcConfig([
+      "--dockerMode=false",
+      "--rebuild=false",
+      '--customPaths=["path1","path2"]',
+    ]);
+
+    expect(config).toEqual({
+      customPaths: ["path1", "path2"],
+      customDirs: [],
+      customFiles: [],
+      protectedPaths: [],
+      dockerMode: false,
+      logfile: true,
+      rebuild: false,
     });
   });
 });

@@ -15,6 +15,7 @@ export type TorchRcConfig = {
   protectedPaths?: string[];
   dockerMode?: boolean;
   logfile?: boolean;
+  rebuild?: boolean;
 };
 
 export const DEFAULT_TORCH_RC_CONFIG: Required<TorchRcConfig> = {
@@ -24,4 +25,5 @@ export const DEFAULT_TORCH_RC_CONFIG: Required<TorchRcConfig> = {
   protectedPaths: [],
   dockerMode: true,
   logfile: true,
+  rebuild: true,
 };
