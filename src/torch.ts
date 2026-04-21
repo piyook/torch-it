@@ -22,12 +22,14 @@ const cliArgs = process.argv.slice(2);
 
 // Check for --help flag
 if (cliArgs.includes("--help")) {
+  setLoggerEnabled(false);
   showHelp();
   process.exit(0);
 }
 
 // Check for --version flag
 if (cliArgs.includes("--version") || cliArgs.includes("-v")) {
+  setLoggerEnabled(false);
   const packageJson = require("../package.json");
   outputToConsole(`torch-it v${packageJson.version}`, "info");
   process.exit(0);
@@ -35,6 +37,7 @@ if (cliArgs.includes("--version") || cliArgs.includes("-v")) {
 
 // Check for --config flag
 if (cliArgs.includes("--config")) {
+  setLoggerEnabled(false);
   showConfig();
   process.exit(0);
 }
