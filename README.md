@@ -183,6 +183,24 @@ Use `--test` to preview what `torch-it` would do without deleting directories, c
 ```bash
 torch-it --test
 ```
+
+### Configuration (`--config`)
+
+Use `--config` to display the current torch-it configuration, including all files and directories that will be targeted for deletion during a torch-it run. This is useful for verifying your setup before performing actual cleanup operations.
+
+```bash
+torch-it --config
+```
+
+The configuration display shows:
+- Current settings from `torchrc.json` (if present) or defaults
+- All built-in cleanup targets
+- Custom paths that will be removed
+- Protected paths that will be preserved
+- Docker and rebuild operation settings
+
+This helps you understand exactly what will be affected before running torch-it, making it easier to verify your configuration is correct.
+
 ---
 ## Customization
 
