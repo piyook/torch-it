@@ -38,13 +38,7 @@ import {
   getTorchRcConfig,
 } from "./utils/cleanup";
 import { installDependencies } from "./utils/dependency";
-import {
-  printBanner,
-  outputToConsole,
-  printRisingFromAshesBanner,
-} from "./utils/ui";
-import { setLoggerEnabled, clearLog } from "./utils/logger";
-import { statusMessage } from "./utils/status";
+import { outputToConsole, printRisingFromAshesBanner } from "./utils/ui";
 
 const mockedDockerCleanup = vi.mocked(dockerCleanup);
 const mockedDockerRebuild = vi.mocked(dockerRebuild);
@@ -55,12 +49,8 @@ const mockedCleanupPackageManagerCaches = vi.mocked(
 );
 const mockedGetTorchRcConfig = vi.mocked(getTorchRcConfig);
 const mockedInstallDependencies = vi.mocked(installDependencies);
-const mockedPrintBanner = vi.mocked(printBanner);
 const mockedOutputToConsole = vi.mocked(outputToConsole);
 const mockedPrintRisingFromAshesBanner = vi.mocked(printRisingFromAshesBanner);
-const mockedSetLoggerEnabled = vi.mocked(setLoggerEnabled);
-const mockedClearLog = vi.mocked(clearLog);
-const mockedStatusMessage = vi.mocked(statusMessage);
 
 describe("torch main functionality", () => {
   beforeEach(() => {
