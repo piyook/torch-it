@@ -3,6 +3,7 @@ import { clearLog, setLoggerEnabled } from "./utils/logger";
 import { getTorchRcConfig } from "./utils/cleanup";
 import { parseCliArgs, handleSpecialFlags } from "./utils/cli";
 import { executeTorchWorkflow } from "./utils/torch-execution";
+import { validateNodeProject } from "./utils/project-validation";
 
 // --- Initialisation ---
 const cliArgs = process.argv.slice(2);
@@ -17,6 +18,10 @@ if (torchRcConfig.logfile) {
   clearLog();
 }
 printBanner();
+
+// Validate that this is a Node.js project
+validateNodeProject();
+
 if (parsedArgs.isDryRun) {
   outputToConsole(
     "Running in --test dry-run mode (no files or services will be changed)",
