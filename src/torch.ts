@@ -14,16 +14,24 @@ import { installDependencies } from "./utils/dependency";
 import type { TorchRecord } from "./types";
 import { getTorchRcConfig } from "./utils/cleanup";
 import { statusMessage } from "./utils/status";
+import { showHelp } from "./utils/help";
 
 // --- Initialisation ---
 const cliArgs = process.argv.slice(2);
+
+// Check for --help flag
+if (cliArgs.includes("--help")) {
+  showHelp();
+  process.exit(0);
+}
+
 const isDryRun = cliArgs.includes("--test");
 if (isDryRun) {
   process.env.TORCH_DRY_RUN = "1";
 }
 
 const torchRcConfig = getTorchRcConfig(
-  cliArgs.filter((arg) => arg !== "--test"),
+  cliArgs.filter((arg) => arg !== "--test" && arg !== "--help"),
 );
 setLoggerEnabled(torchRcConfig.logfile);
 if (torchRcConfig.logfile) {
