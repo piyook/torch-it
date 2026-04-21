@@ -25,13 +25,26 @@ if (cliArgs.includes("--help")) {
   process.exit(0);
 }
 
+// Check for --version flag
+if (cliArgs.includes("--version") || cliArgs.includes("-v")) {
+  const packageJson = require("../package.json");
+  outputToConsole(`torch-it v${packageJson.version}`, "info");
+  process.exit(0);
+}
+
 const isDryRun = cliArgs.includes("--test");
 if (isDryRun) {
   process.env.TORCH_DRY_RUN = "1";
 }
 
 const torchRcConfig = getTorchRcConfig(
-  cliArgs.filter((arg) => arg !== "--test" && arg !== "--help"),
+  cliArgs.filter(
+    (arg) =>
+      arg !== "--test" &&
+      arg !== "--help" &&
+      arg !== "--version" &&
+      arg !== "-v",
+  ),
 );
 setLoggerEnabled(torchRcConfig.logfile);
 if (torchRcConfig.logfile) {

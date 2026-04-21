@@ -217,6 +217,7 @@ torch-it --dockerMode=false --rebuild=false --customPaths=["temp/","logs/"]
 All configuration options can be overridden using `--optionName=value` syntax. For arrays and objects, use JSON syntax:
 
 - `--help` - Show help message and available options
+- `--version, -v` - Show version information and exit
 - `--test` - Run in dry-run mode (preview changes without executing)
 - `--customPaths=["path1","path2"]`
 - `--dockerMode=false`

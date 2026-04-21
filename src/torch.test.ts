@@ -196,4 +196,50 @@ describe("torch main functionality", () => {
       process.exit = originalExit;
     }
   });
+
+  it("displays version information and exits when --version flag is used", async () => {
+    process.argv = ["node", "torch-it", "--version"];
+
+    // Mock process.exit to prevent actual exit during test
+    const mockExit = vi.fn() as any;
+    const originalExit = process.exit;
+    process.exit = mockExit;
+
+    try {
+      // Import and run the main module
+      await import("./torch.js");
+
+      expect(mockExit).toHaveBeenCalledWith(0);
+      expect(mockedOutputToConsole).toHaveBeenCalledWith(
+        expect.stringContaining("torch-it v"),
+        "info",
+      );
+    } finally {
+      // Restore original process.exit
+      process.exit = originalExit;
+    }
+  });
+
+  it("displays version information and exits when -v flag is used", async () => {
+    process.argv = ["node", "torch-it", "-v"];
+
+    // Mock process.exit to prevent actual exit during test
+    const mockExit = vi.fn() as any;
+    const originalExit = process.exit;
+    process.exit = mockExit;
+
+    try {
+      // Import and run the main module
+      await import("./torch.js");
+
+      expect(mockExit).toHaveBeenCalledWith(0);
+      expect(mockedOutputToConsole).toHaveBeenCalledWith(
+        expect.stringContaining("torch-it v"),
+        "info",
+      );
+    } finally {
+      // Restore original process.exit
+      process.exit = originalExit;
+    }
+  });
 });
