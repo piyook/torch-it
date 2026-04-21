@@ -73,7 +73,7 @@ Then, in your project root,simply run:
 torch-it
 ```
 
-For per-project customisation, create a `torchrc.json` file in your project root (see Customization section below).
+For per-project customisation, create a `torchrc.json` file in your project root (see Customization section below) or use command line flags (see Command Line Options section below).
 
 ### Per-Project Installation (Alternative)
 
