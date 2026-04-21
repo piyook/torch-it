@@ -4,18 +4,18 @@ vi.mock("fs", () => ({
   existsSync: vi.fn(),
 }));
 
-vi.mock("./system", () => ({
+vi.mock("../../src/utils/system", () => ({
   hasCmd: vi.fn(),
   run: vi.fn(),
 }));
 
-vi.mock("./ui", () => ({
+vi.mock("../../src/utils/ui", () => ({
   outputToConsole: vi.fn(),
 }));
 
 import * as fs from "fs";
-import { installDependencies } from "./dependency";
-import { hasCmd, run } from "./system";
+import { installDependencies } from "../../src/utils/dependency";
+import { hasCmd, run } from "../../src/utils/system";
 
 const mockedExistsSync = vi.mocked(fs.existsSync);
 const mockedHasCmd = vi.mocked(hasCmd);

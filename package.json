@@ -1,6 +1,6 @@
 {
   "name": "torch-it",
-  "version": "2.5.2",
+  "version": "2.5.3",
   "description": "CLI to reset, clean, and rebuild Node.js project environments.",
   "keywords": [
     "cleanup",
@@ -33,8 +33,8 @@
     "torch-it:ts": "ts-node src/torch.ts",
     "lint": "oxlint .",
     "lint:fix": "oxlint . --fix",
-    "format": "prettier --check src/**/*.{ts,js,json} package.json package-lock.json .commitlintrc.json",
-    "format:write": "prettier --write src/**/*.{ts,js,json} package.json package-lock.json .commitlintrc.json",
+    "format": "prettier --check src/**/*.{ts,js,json} tests/**/*.{ts,js,json} package.json package-lock.json .commitlintrc.json",
+    "format:write": "prettier --write src/**/*.{ts,js,json} tests/**/*.{ts,js,json} package.json package-lock.json .commitlintrc.json",
     "quality": "npm run lint && npm run format && npm test",
     "validate-branch-name": "validate-branch-name",
     "prepare": "husky",
