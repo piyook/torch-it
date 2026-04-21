@@ -67,7 +67,7 @@ describe("torch main functionality", () => {
       customFiles: [],
       protectedPaths: [],
       dockerMode: true,
-      logfile: true,
+      logfile: false,
       rebuild: true,
     });
 
@@ -94,7 +94,7 @@ describe("torch main functionality", () => {
       customFiles: [],
       protectedPaths: [],
       dockerMode: true,
-      logfile: true,
+      logfile: false,
       rebuild: false,
     });
 
@@ -126,7 +126,7 @@ describe("torch main functionality", () => {
       customFiles: [],
       protectedPaths: [],
       dockerMode: true,
-      logfile: true,
+      logfile: false,
       rebuild: true,
     });
 
@@ -153,7 +153,7 @@ describe("torch main functionality", () => {
       customFiles: [],
       protectedPaths: [],
       dockerMode: true,
-      logfile: true,
+      logfile: false,
       rebuild: true,
     });
 

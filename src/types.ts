@@ -24,6 +24,6 @@ export const DEFAULT_TORCH_RC_CONFIG: Required<TorchRcConfig> = {
   customFiles: [],
   protectedPaths: [],
   dockerMode: true,
-  logfile: true,
+  logfile: false,
   rebuild: true,
 };

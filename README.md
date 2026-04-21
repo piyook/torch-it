@@ -131,7 +131,7 @@ For project-level customization, create a local `torchrc.json` file in your proj
 - `protectedPaths`: Array of directories and files to skip during cleanup. These paths will be preserved even if they match built-in or custom cleanup targets.
 - `dockerMode`: Boolean flag to enable/disable Docker operations. Set to `false` to skip all Docker cleanup, rebuild, and launch steps. Defaults to `true`.
 - `rebuild`: Boolean flag to enable/disable rebuild operations. Set to `false` to skip both package manager dependency installation and Docker rebuild/launch while still performing cleanup. Defaults to `true`.
-- `logfile`: Boolean flag to enable or disable writing runtime output to `torch-it.log`. Set to `false` to disable file logging. Defaults to `true`.
+- `logfile`: Boolean flag to enable or disable writing runtime output to `torch-it.log`. Set to `true` to enable file logging. Defaults to `false`.
 
 **Note**: The local `torchrc.json` file is completely optional. torch-it works with sensible defaults out of the box. Only create this file if you need to customize the behavior.
 
@@ -148,13 +148,14 @@ All configuration options can be overridden using `--optionName=value` syntax. F
 - `--customPaths=["path1","path2"]`
 - `--dockerMode=false`
 - `--rebuild=false`
+- `--logfile=true`
 
 Command line flags take precedence over `torchrc.json` settings.
 
 
 ## Logging   
 
-`torch-it` outputs information to the console and writes logs to `torch-it.log` in your project root by default so you can troubleshoot any issues and see what was removed and reinstalled. If you set `logfile` to `false` in `torchrc.json`, no log file will be written.
+`torch-it` outputs information to the console. By default, no log file is written. If you want to save runtime output to `torch-it.log` in your project root for troubleshooting purposes, set `logfile` to `true` in `torchrc.json`.
 
 This file should be ignored by git to avoid accidental commits. Add this to your `.gitignore`:   
 

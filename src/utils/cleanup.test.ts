@@ -86,7 +86,7 @@ describe("getTorchRcConfig", () => {
       customFiles: [],
       protectedPaths: [],
       dockerMode: true,
-      logfile: true,
+      logfile: false,
       rebuild: true,
     });
   });
@@ -126,7 +126,7 @@ describe("getTorchRcConfig", () => {
       customFiles: [],
       protectedPaths: [],
       dockerMode: true,
-      logfile: true,
+      logfile: false,
       rebuild: true,
     });
   });
@@ -146,7 +146,7 @@ describe("getTorchRcConfig", () => {
       customFiles: [],
       protectedPaths: [],
       dockerMode: false,
-      logfile: true,
+      logfile: false,
       rebuild: false,
     });
   });
