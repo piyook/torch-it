@@ -173,4 +173,27 @@ describe("torch main functionality", () => {
       "warn",
     );
   });
+
+  it("displays help message and exits when --help flag is used", async () => {
+    process.argv = ["node", "torch-it", "--help"];
+
+    // Mock process.exit to prevent actual exit during test
+    const mockExit = vi.fn() as any;
+    const originalExit = process.exit;
+    process.exit = mockExit;
+
+    try {
+      // Import and run the main module
+      await import("./torch.js");
+
+      expect(mockExit).toHaveBeenCalledWith(0);
+      expect(mockedOutputToConsole).toHaveBeenCalledWith(
+        expect.stringContaining("🔥 Torch It - Project Environment Reset Tool"),
+        "info",
+      );
+    } finally {
+      // Restore original process.exit
+      process.exit = originalExit;
+    }
+  });
 });
