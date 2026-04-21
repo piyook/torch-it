@@ -218,13 +218,17 @@ All configuration options can be overridden using `--optionName=value` syntax. F
 
 - `--help` - Show help message and available options
 - `--version, -v` - Show version information and exit
+- `--config` - Show current configuration and exit
 - `--test` - Run in dry-run mode (preview changes without executing)
 - `--customPaths=["path1","path2"]`
 - `--dockerMode=false`
 - `--rebuild=false`
 - `--logfile=true`
 
-Command line flags take precedence over `torchrc.json` settings.
+Command line flags take precedence over `torchrc.json` settings.   
+
+The config option `--config` will show all current settings including those from command line flags and a list of all files and directories that will be cleaned in the current project.   
+
 
 
 ## Logging   
