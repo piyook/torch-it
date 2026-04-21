@@ -47,6 +47,23 @@ export const BUILD_DIRS = [
   "es",
   "cjs",
   "umd",
+  ".remix",
+  ".qwik",
+  ".nitro",
+  ".wrangler",
+  ".amplify",
+  ".sst",
+  ".babel-cache",
+  ".cache-loader",
+  "jspm_packages",
+  ".typings",
+] as const;
+
+export const FILE_PATTERNS = [
+  "*.log",
+  "*.tgz",
+  "*.tar.gz",
+  "tsconfig.tsbuildinfo",
 ] as const;
 
 export const CACHE_DIRS = [
@@ -58,6 +75,15 @@ export const CACHE_DIRS = [
   ".yarn/build-state.yml",
   ".npm",
   "node_modules/.cache",
+  ".yalc",
+  ".lerna",
+  ".nx/cache",
+  ".vite/deps",
+  ".turbo",
+  "tsconfig.tsbuildinfo",
+  ".hardhat",
+  ".foundry",
+  ".anchor",
 ] as const;
 
 export const CUSTOM_DIRS = [
