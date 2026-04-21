@@ -1,129 +1,28 @@
-import { dockerCleanup, dockerRebuild, dockerLaunch } from "./utils/docker";
-import {
-  printBanner,
-  outputToConsole,
-  printRisingFromAshesBanner,
-} from "./utils/ui";
-import { ICONS } from "./constants/constants";
-import {
-  cleanupBuildsAndCaches,
-  cleanupPackageManagerCaches,
-} from "./utils/cleanup";
+import { printBanner, outputToConsole } from "./utils/ui";
 import { clearLog, setLoggerEnabled } from "./utils/logger";
-import { installDependencies } from "./utils/dependency";
-import type { TorchRecord } from "./types";
 import { getTorchRcConfig } from "./utils/cleanup";
-import { statusMessage } from "./utils/status";
-import { showHelp } from "./utils/help";
-import { showConfig } from "./utils/config-display";
+import { parseCliArgs, handleSpecialFlags } from "./utils/cli";
+import { executeTorchWorkflow } from "./utils/torch-execution";
 
 // --- Initialisation ---
 const cliArgs = process.argv.slice(2);
+const parsedArgs = parseCliArgs(cliArgs);
 
-// Check for --help flag
-if (cliArgs.includes("--help")) {
-  setLoggerEnabled(false);
-  showHelp();
-  process.exit(0);
-}
+// Handle special flags that exit early
+handleSpecialFlags(parsedArgs);
 
-// Check for --version flag
-if (cliArgs.includes("--version") || cliArgs.includes("-v")) {
-  setLoggerEnabled(false);
-  const packageJson = require("../package.json");
-  outputToConsole(`torch-it v${packageJson.version}`, "info");
-  process.exit(0);
-}
-
-// Check for --config flag
-if (cliArgs.includes("--config")) {
-  setLoggerEnabled(false);
-  showConfig();
-  process.exit(0);
-}
-
-const isDryRun = cliArgs.includes("--test");
-if (isDryRun) {
-  process.env.TORCH_DRY_RUN = "1";
-}
-
-const torchRcConfig = getTorchRcConfig(
-  cliArgs.filter(
-    (arg) =>
-      arg !== "--test" &&
-      arg !== "--help" &&
-      arg !== "--version" &&
-      arg !== "-v" &&
-      arg !== "--config",
-  ),
-);
+const torchRcConfig = getTorchRcConfig(parsedArgs.filteredArgs);
 setLoggerEnabled(torchRcConfig.logfile);
 if (torchRcConfig.logfile) {
   clearLog();
 }
 printBanner();
-if (isDryRun) {
+if (parsedArgs.isDryRun) {
   outputToConsole(
     "Running in --test dry-run mode (no files or services will be changed)",
     "warn",
   );
 }
 
-const torchRecord: TorchRecord = {
-  dockerClean: "NO_DOCKER",
-  buildAndCacheClean: false,
-  packageManagerClean: false,
-  dependencyInstall: false,
-  dockerRebuild: false,
-  dockerLaunch: false,
-  logfile: torchRcConfig.logfile,
-};
-
-// --- Docker Cleanup ---
-outputToConsole(`${ICONS.CLEAN} DOCKER CLEANUP`, "step");
-torchRecord.dockerClean = dockerCleanup();
-
-// --- Build/Cache Cleanup ---
-outputToConsole(`${ICONS.CLEAN} BUILD ARTIFACTS & CACHE CLEANUP`, "step");
-torchRecord.buildAndCacheClean = cleanupBuildsAndCaches();
-
-// --- Package Manager Cache Cleanup ---
-outputToConsole("Cleaning package manager caches...", "step");
-torchRecord.packageManagerClean = cleanupPackageManagerCaches();
-
-// --- Dependency Installation ---
-if (torchRcConfig.rebuild !== false) {
-  printRisingFromAshesBanner();
-  outputToConsole(`${ICONS.BUILD} DEPENDENCY INSTALLATION`, "step");
-  torchRecord.dependencyInstall = installDependencies();
-} else {
-  outputToConsole(
-    "Rebuild disabled - skipping dependency installation",
-    "info",
-  );
-  torchRecord.dependencyInstall = false;
-}
-
-// --- Docker Rebuild ---
-if (
-  torchRecord.dockerClean !== "NO_DOCKER" &&
-  torchRcConfig.rebuild !== false
-) {
-  outputToConsole(`${ICONS.BUILD} DOCKER REBUILD`, "step");
-  torchRecord.dockerRebuild = dockerRebuild();
-} else if (
-  torchRecord.dockerClean !== "NO_DOCKER" &&
-  torchRcConfig.rebuild === false
-) {
-  outputToConsole("Rebuild disabled - skipping Docker rebuild", "info");
-  torchRecord.dockerRebuild = false;
-}
-
-// --- Docker Launch ---
-if (torchRecord.dockerRebuild) {
-  torchRecord.dockerLaunch = dockerLaunch();
-  outputToConsole(`${ICONS.ROCKET} LAUNCH`, "step");
-}
-
-// --- Final Success Message ---
-statusMessage(torchRecord);
+// --- Execute Torch Workflow ---
+executeTorchWorkflow(torchRcConfig);
