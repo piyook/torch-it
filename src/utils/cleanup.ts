@@ -1,6 +1,12 @@
 import { outputToConsole } from "./ui";
 import * as fs from "fs";
-import { BUILD_DIRS, CACHE_DIRS, CUSTOM_DIRS } from "../constants/config";
+import * as path from "path";
+import {
+  BUILD_DIRS,
+  CACHE_DIRS,
+  CUSTOM_DIRS,
+  FILE_PATTERNS,
+} from "../constants/config";
 import { hasCmd, run } from "./system";
 import type { TorchRcConfig } from "../types";
 import { DEFAULT_TORCH_RC_CONFIG } from "../types";
@@ -104,6 +110,7 @@ const cleanupBuildsAndCaches = () => {
     ...new Set([...BUILD_DIRS, ...CACHE_DIRS, ...CUSTOM_DIRS]),
   ];
   const customTargets = [...new Set(torchRcCustomPaths)];
+  const filePatterns = [...FILE_PATTERNS];
 
   // Filter out protected paths
   const filteredDefaultTargets = defaultTargets.filter(
@@ -142,11 +149,72 @@ const cleanupBuildsAndCaches = () => {
     }
   };
 
+  const cleanupFilePatterns = () => {
+    for (const pattern of filePatterns) {
+      const isGlob = pattern.includes("*");
+      if (isGlob) {
+        try {
+          const files = fs
+            .readdirSync(".", { withFileTypes: true })
+            .filter((dirent) => {
+              const name = dirent.name;
+              return name.match(pattern.replace("*", ".*"));
+            })
+            .map((dirent) => dirent.name);
+
+          for (const file of files) {
+            const filePath = path.join(".", file);
+            if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+              // Check if file is protected
+              const isProtected = protectedPaths.some(
+                (protectedPath) =>
+                  filePath === protectedPath ||
+                  filePath.startsWith(protectedPath + "/"),
+              );
+
+              if (!isProtected) {
+                outputToConsole(
+                  `${isDryRun ? "Would remove" : "Removing"} ${filePath}...`,
+                  "step",
+                );
+                try {
+                  if (!isDryRun) {
+                    fs.unlinkSync(filePath);
+                  }
+                  outputToConsole(
+                    `${filePath} ${isDryRun ? "marked for removal (dry-run)" : "removed"}`,
+                    "success",
+                  );
+                  removedCount++;
+                } catch {
+                  outputToConsole(`Failed to remove ${filePath}`, "fail");
+                }
+              }
+            }
+          }
+        } catch (error) {
+          outputToConsole(
+            `Failed to process pattern ${pattern}: ${error}`,
+            "warn",
+          );
+        }
+      } else {
+        // Handle non-glob patterns (like tsconfig.tsbuildinfo)
+        if (fs.existsSync(pattern)) {
+          cleanupTarget(pattern);
+        }
+      }
+    }
+  };
+
   outputToConsole(
     "Scanning for build artifacts and cache directories...",
     "step",
   );
   filteredDefaultTargets.forEach(cleanupTarget);
+
+  outputToConsole("Scanning for log files and temporary files...", "step");
+  cleanupFilePatterns();
 
   if (filteredCustomTargets.length > 0) {
     outputToConsole(

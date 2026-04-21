@@ -24,15 +24,85 @@ It's surprising how often this just fixes things. 🤞
 
 ## Features
 
-- **One command** to clear all local caches, delete `node_modules`, and reinstall dependencies
-- **Fully customizable** — specify any directories or files to delete
+- **One command** to clean up 50+ build artifacts, cache directories, log files, and reinstall dependencies
+- **Comprehensive framework support** — handles React, Next.js, Vue, Vite, SvelteKit, Remix, Qwik, Nuxt, Astro, Angular, Solid, and 40+ more
+- **Smart file pattern matching** — removes `*.log`, `*.tgz`, `*.tar.gz`, and other temporary files automatically
+- **Fully customizable** — specify any directories or files to delete via `torchrc.json`
 - **Docker support** — removes containers, images, and volumes and rebuilds from scratch 🐳
 - **Cross-platform** — works on Windows, Linux, and macOS
 - **Zero-dependency** — lightweight and no additional packages required
 
 ## Supported Frameworks
 
-React, Next.js, Vue, Vite, SvelteKit, React Native, Expo, and more.
+React, Next.js, Vue, Vite, SvelteKit, React Native, Expo, Remix, Qwik, Nuxt, Astro, Angular, Solid, Docusaurus, and 40+ more frameworks and tools.
+
+## Comprehensive Cleanup Targets
+
+`torch-it` cleans up 50+ common build artifacts, cache directories, and temporary files:
+
+### Framework Build Outputs
+- `dist`, `build`, `out`, `.output` - Standard build directories
+- `.next` - Next.js build cache
+- `.nuxt` - Nuxt.js build output  
+- `.svelte-kit`, `.svelte` - Svelte/SvelteKit builds
+- `.remix` - Remix framework build output
+- `.qwik` - Qwik framework build output
+- `.astro` - Astro framework build output
+- `.angular`, `.angular/cache` - Angular build artifacts
+- `.solid` - Solid.js build output
+- `.docusaurus` - Docusaurus static site output
+- `.nitro` - Nuxt Nitro server output
+
+### Development Tool Caches
+- `.cache`, `.parcel-cache`, `.webpack`, `.rollup.cache` - Build tool caches
+- `.vite` - Vite build tool cache
+- `.swc`, `.rpt2_cache` - JavaScript transpiler caches
+- `.eslintcache`, `.stylelintcache`, `.sass-cache` - Linter/preprocessor caches
+- `.babel-cache`, `.cache-loader` - Babel and webpack loader caches
+
+### Package Manager Caches
+- `node_modules/.cache` - npm package cache
+- `.npm` - npm global cache
+- `.pnpm-store`, `.pnpm-debug.log` - pnpm caches
+- `.yarn/cache`, `.yarn/unplugged`, `.yarn/install-state.gz` - Yarn caches
+
+### Monorepo & Build Tools
+- `.turbo` - Turborepo cache
+- `.nx/cache` - Nx build system cache
+- `.lerna` - Lerna monorepo cache
+- `.rush` - Rush monorepo cache
+- `.yalc` - Yalc local package manager
+
+### Blockchain & Web3 Tools
+- `.hardhat` - Hardhat Ethereum development
+- `.foundry` - Foundry Ethereum development  
+- `.anchor` - Anchor Solana development
+
+### Deployment & Platform Files
+- `.vercel` - Vercel deployment cache
+- `.netlify` - Netlify build cache
+- `.wrangler` - Cloudflare Workers
+- `.amplify` - AWS Amplify
+- `.sst` - SST framework
+- `.firebase` - Firebase hosting files
+- `.serverless` - Serverless framework
+
+### Mobile Development
+- `android/.gradle`, `android/build`, `android/app/build` - Android builds
+- `ios/Pods`, `ios/build` - iOS builds
+- `.expo`, `.expo-shared` - Expo React Native
+
+### File Patterns
+- `*.log` - All log files
+- `*.tgz`, `*.tar.gz` - Compressed archives
+- `tsconfig.tsbuildinfo` - TypeScript incremental build info
+- `coverage`, `.nyc_output` - Test coverage reports
+- `storybook-static`, `.storybook-out` - Storybook builds
+
+### Temporary Files
+- `.tmp`, `tmp`, `temp` - Temporary directories
+- `lib`, `es`, `cjs`, `umd` - Compiled JavaScript outputs
+- `jspm_packages`, `.typings` - Package manager files
 
 ## Supported Package Managers
 
@@ -40,7 +110,8 @@ React, Next.js, Vue, Vite, SvelteKit, React Native, Expo, and more.
 
 ### Core Operations (Always Performed)
 
-- **Removes build artifacts and cache directories** for common JavaScript/Node.js frameworks (e.g., `node_modules`, `dist`, `.next`, `.cache`, etc.).
+- **Removes build artifacts and cache directories** for 50+ JavaScript/Node.js frameworks and tools (e.g., `node_modules`, `dist`, `.next`, `.cache`, `.vite`, `.remix`, `.qwik`, etc.).
+- **Removes log files and temporary artifacts** including `*.log`, `*.tgz`, `*.tar.gz`, and build info files.
 - **Removes custom directories/paths** that you define in `torchrc.json`.
 - **Cleans package manager caches** for npm, yarn, and pnpm.
 - **Reinstalls dependencies** using your preferred package manager (npm, yarn, or pnpm).
