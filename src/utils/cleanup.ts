@@ -5,6 +5,34 @@ import { hasCmd, run } from "./system";
 import type { TorchRcConfig } from "../types";
 import { DEFAULT_TORCH_RC_CONFIG } from "../types";
 
+const parseCliOverrides = (cliArgs: string[]): Partial<TorchRcConfig> => {
+  const overrides: Partial<TorchRcConfig> = {};
+
+  for (const arg of cliArgs) {
+    if (!arg.startsWith("--")) continue;
+
+    const [key, value] = arg.slice(2).split("=", 2);
+    if (!key || !value) continue;
+
+    try {
+      // Try to parse as JSON first (for arrays/objects)
+      const parsedValue = JSON.parse(value);
+      (overrides as any)[key] = parsedValue;
+    } catch {
+      // If not JSON, treat as string or boolean
+      if (value === "true") {
+        (overrides as any)[key] = true;
+      } else if (value === "false") {
+        (overrides as any)[key] = false;
+      } else {
+        (overrides as any)[key] = value;
+      }
+    }
+  }
+
+  return overrides;
+};
+
 export const loadTorchRcConfig = (): TorchRcConfig => {
   const torchRcPath = "torchrc.json";
 
@@ -26,7 +54,7 @@ export const loadTorchRcConfig = (): TorchRcConfig => {
   }
 };
 
-export const getTorchRcConfig = (): Required<TorchRcConfig> => {
+export const getTorchRcConfigFromFile = (): Required<TorchRcConfig> => {
   const userConfig = loadTorchRcConfig();
   return {
     customPaths: userConfig.customPaths ?? DEFAULT_TORCH_RC_CONFIG.customPaths,
@@ -36,11 +64,22 @@ export const getTorchRcConfig = (): Required<TorchRcConfig> => {
       userConfig.protectedPaths ?? DEFAULT_TORCH_RC_CONFIG.protectedPaths,
     dockerMode: userConfig.dockerMode ?? DEFAULT_TORCH_RC_CONFIG.dockerMode,
     logfile: userConfig.logfile ?? DEFAULT_TORCH_RC_CONFIG.logfile,
+    rebuild: userConfig.rebuild ?? DEFAULT_TORCH_RC_CONFIG.rebuild,
   };
 };
 
+export const getTorchRcConfig = (
+  cliArgs: string[] = [],
+): Required<TorchRcConfig> => {
+  const fileConfig = getTorchRcConfigFromFile();
+  const cliOverrides = parseCliOverrides(cliArgs);
+
+  // CLI overrides take precedence over file config
+  return { ...fileConfig, ...cliOverrides };
+};
+
 const loadTorchRcCustomPaths = (): string[] => {
-  const config = getTorchRcConfig();
+  const config = getTorchRcConfigFromFile();
 
   const rawPaths = [
     ...config.customPaths,
@@ -57,7 +96,7 @@ const loadTorchRcCustomPaths = (): string[] => {
 const cleanupBuildsAndCaches = () => {
   const isDryRun = process.env.TORCH_DRY_RUN === "1";
   let removedCount = 0;
-  const torchRcConfig = getTorchRcConfig();
+  const torchRcConfig = getTorchRcConfigFromFile();
   const torchRcCustomPaths = loadTorchRcCustomPaths();
   const protectedPaths = torchRcConfig.protectedPaths;
 

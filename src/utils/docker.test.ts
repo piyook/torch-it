@@ -76,6 +76,21 @@ describe("dockerRebuild", () => {
 
     expect(result).toBe(false);
   });
+
+  it("skips Docker rebuild when rebuild is false", () => {
+    mockedExistsSync.mockImplementation(
+      (target) => target === "torchrc.json" || target === "docker-compose.yml",
+    );
+    mockedReadFileSync.mockReturnValue(
+      JSON.stringify({
+        rebuild: false,
+      }),
+    );
+
+    const result = dockerRebuild();
+
+    expect(result).toBe(false);
+  });
 });
 
 describe("dockerLaunch", () => {
