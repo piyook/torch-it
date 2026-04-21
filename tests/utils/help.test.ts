@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("./ui", () => ({
+vi.mock("../../src/utils/ui", () => ({
   outputToConsole: vi.fn(),
 }));
 
-import { outputToConsole } from "./ui";
-import { showHelp } from "./help";
+import { outputToConsole } from "../../src/utils/ui";
+import { showHelp } from "../../src/utils/help";
 
 const mockedOutputToConsole = vi.mocked(outputToConsole);
 

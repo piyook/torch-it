@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { TorchRecord } from "../types";
+import type { TorchRecord } from "../../src/types";
 
-vi.mock("./ui", () => ({
+vi.mock("../../src/utils/ui", () => ({
   printBox: vi.fn(),
 }));
 
-import { statusMessage } from "./status";
-import { printBox } from "./ui";
+import { statusMessage } from "../../src/utils/status";
+import { printBox } from "../../src/utils/ui";
 
 const mockedPrintBox = vi.mocked(printBox);
 

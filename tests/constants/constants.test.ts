@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { COLOURS } from "./constants";
+import { COLOURS } from "../../src/constants/constants";
 
 describe("COLOURS helpers", () => {
   it("wraps text in bold ANSI codes", () => {

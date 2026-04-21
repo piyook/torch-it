@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { BUILD_DIRS, CACHE_DIRS, CUSTOM_DIRS } from "./config";
+import {
+  BUILD_DIRS,
+  CACHE_DIRS,
+  CUSTOM_DIRS,
+} from "../../src/constants/config";
 
 describe("cleanup config directories", () => {
   it("includes common frontend build artifacts", () => {

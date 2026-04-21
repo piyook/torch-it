@@ -5,17 +5,21 @@ vi.mock("fs", () => ({
   readFileSync: vi.fn(),
 }));
 
-vi.mock("./ui", () => ({
+vi.mock("../../src/utils/ui", () => ({
   outputToConsole: vi.fn(),
 }));
 
-vi.mock("./system", () => ({
+vi.mock("../../src/utils/system", () => ({
   hasCmd: vi.fn(),
   run: vi.fn(),
 }));
 
 import * as fs from "fs";
-import { dockerCleanup, dockerRebuild, dockerLaunch } from "./docker";
+import {
+  dockerCleanup,
+  dockerRebuild,
+  dockerLaunch,
+} from "../../src/utils/docker";
 
 const mockedExistsSync = vi.mocked(fs.existsSync);
 const mockedReadFileSync = vi.mocked(fs.readFileSync);

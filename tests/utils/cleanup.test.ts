@@ -6,11 +6,11 @@ vi.mock("fs", () => ({
   readFileSync: vi.fn(),
 }));
 
-vi.mock("./ui", () => ({
+vi.mock("../../src/utils/ui", () => ({
   outputToConsole: vi.fn(),
 }));
 
-vi.mock("./system", () => ({
+vi.mock("../../src/utils/system", () => ({
   hasCmd: vi.fn(),
   run: vi.fn(),
 }));
@@ -20,7 +20,7 @@ import {
   cleanupBuildsAndCaches,
   getTorchRcConfig,
   getTorchRcConfigFromFile,
-} from "./cleanup";
+} from "../../src/utils/cleanup";
 
 const mockedExistsSync = vi.mocked(fs.existsSync);
 const mockedRmSync = vi.mocked(fs.rmSync);

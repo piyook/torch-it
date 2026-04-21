@@ -5,11 +5,10 @@
     "moduleResolution": "nodenext",
     "esModuleInterop": true,
     "outDir": "./dist",
-    "rootDir": "./src",
     "strict": true,
     "skipLibCheck": true,
     "types": ["node"],
     "ignoreDeprecations": "5.0"
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "tests/**/*"]
 }

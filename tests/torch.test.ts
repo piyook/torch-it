@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("./utils/docker", () => ({
+vi.mock("../src/utils/docker", () => ({
   dockerCleanup: vi.fn(),
   dockerRebuild: vi.fn(),
   dockerLaunch: vi.fn(),
 }));
 
-vi.mock("./utils/cleanup", () => ({
+vi.mock("../src/utils/cleanup", () => ({
   cleanupBuildsAndCaches: vi.fn(),
   cleanupPackageManagerCaches: vi.fn(),
   getTorchRcConfig: vi.fn(),
@@ -14,35 +14,39 @@ vi.mock("./utils/cleanup", () => ({
   loadTorchRcCustomPaths: vi.fn(),
 }));
 
-vi.mock("./utils/dependency", () => ({
+vi.mock("../src/utils/dependency", () => ({
   installDependencies: vi.fn(),
 }));
 
-vi.mock("./utils/ui", () => ({
+vi.mock("../src/utils/ui", () => ({
   printBanner: vi.fn(),
   outputToConsole: vi.fn(),
   printRisingFromAshesBanner: vi.fn(),
 }));
 
-vi.mock("./utils/logger", () => ({
+vi.mock("../src/utils/logger", () => ({
   setLoggerEnabled: vi.fn(),
   clearLog: vi.fn(),
 }));
 
-vi.mock("./utils/status", () => ({
+vi.mock("../src/utils/status", () => ({
   statusMessage: vi.fn(),
 }));
 
-import { dockerCleanup, dockerRebuild, dockerLaunch } from "./utils/docker";
+import {
+  dockerCleanup,
+  dockerRebuild,
+  dockerLaunch,
+} from "../src/utils/docker";
 import {
   cleanupBuildsAndCaches,
   cleanupPackageManagerCaches,
   getTorchRcConfig,
   getTorchRcConfigFromFile,
   loadTorchRcCustomPaths,
-} from "./utils/cleanup";
-import { installDependencies } from "./utils/dependency";
-import { outputToConsole, printRisingFromAshesBanner } from "./utils/ui";
+} from "../src/utils/cleanup";
+import { installDependencies } from "../src/utils/dependency";
+import { outputToConsole, printRisingFromAshesBanner } from "../src/utils/ui";
 
 const mockedDockerCleanup = vi.mocked(dockerCleanup);
 const mockedDockerRebuild = vi.mocked(dockerRebuild);
@@ -83,7 +87,7 @@ describe("torch main functionality", () => {
     mockedDockerLaunch.mockReturnValue(true);
 
     // Import and run the main module
-    await import("./torch.js");
+    await import("../src/torch.js");
 
     expect(mockedPrintRisingFromAshesBanner).toHaveBeenCalled();
     expect(mockedInstallDependencies).toHaveBeenCalled();
@@ -107,7 +111,7 @@ describe("torch main functionality", () => {
     mockedCleanupPackageManagerCaches.mockReturnValue(true);
 
     // Import and run the main module
-    await import("./torch.js");
+    await import("../src/torch.js");
 
     expect(mockedPrintRisingFromAshesBanner).not.toHaveBeenCalled();
     expect(mockedInstallDependencies).not.toHaveBeenCalled();
@@ -140,7 +144,7 @@ describe("torch main functionality", () => {
     mockedInstallDependencies.mockReturnValue(true);
 
     // Import and run the main module
-    await import("./torch.js");
+    await import("../src/torch.js");
 
     expect(mockedPrintRisingFromAshesBanner).toHaveBeenCalled();
     expect(mockedInstallDependencies).toHaveBeenCalled();
@@ -169,7 +173,7 @@ describe("torch main functionality", () => {
     mockedDockerLaunch.mockReturnValue(true);
 
     // Import and run the main module
-    await import("./torch.js");
+    await import("../src/torch.js");
 
     expect(process.env.TORCH_DRY_RUN).toBe("1");
     expect(mockedOutputToConsole).toHaveBeenCalledWith(
@@ -188,7 +192,7 @@ describe("torch main functionality", () => {
 
     try {
       // Import and run the main module
-      await import("./torch.js");
+      await import("../src/torch.js");
 
       expect(mockExit).toHaveBeenCalledWith(0);
       expect(mockedOutputToConsole).toHaveBeenCalledWith(
@@ -211,7 +215,7 @@ describe("torch main functionality", () => {
 
     try {
       // Import and run the main module
-      await import("./torch.js");
+      await import("../src/torch.js");
 
       expect(mockExit).toHaveBeenCalledWith(0);
       expect(mockedOutputToConsole).toHaveBeenCalledWith(
@@ -234,7 +238,7 @@ describe("torch main functionality", () => {
 
     try {
       // Import and run the main module
-      await import("./torch.js");
+      await import("../src/torch.js");
 
       expect(mockExit).toHaveBeenCalledWith(0);
       expect(mockedOutputToConsole).toHaveBeenCalledWith(
@@ -273,7 +277,7 @@ describe("torch main functionality", () => {
 
     try {
       // Import and run the main module
-      await import("./torch.js");
+      await import("../src/torch.js");
 
       expect(mockExit).toHaveBeenCalledWith(0);
       expect(mockedOutputToConsole).toHaveBeenCalledWith(
