@@ -74,6 +74,8 @@ export const getTorchRcConfigFromFile = (): Required<TorchRcConfig> => {
   };
 };
 
+export { loadTorchRcCustomPaths };
+
 export const getTorchRcConfig = (
   cliArgs: string[] = [],
 ): Required<TorchRcConfig> => {

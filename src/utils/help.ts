@@ -9,6 +9,8 @@ USAGE:
 
 OPTIONS:
   --help                 Show this help message and exit
+  --version, -v          Show version information and exit
+  --config               Show current configuration and exit
   --test                 Run in dry-run mode (preview changes without executing)
   --dockerMode=<bool>    Enable/disable Docker operations (default: true)
   --rebuild=<bool>       Enable/disable rebuild operations (default: true)
@@ -18,6 +20,8 @@ OPTIONS:
 
 EXAMPLES:
   torch-it                           # Run with default settings
+  torch-it --version                  # Show version information
+  torch-it --config                   # Show current configuration
   torch-it --test                     # Preview what would be done
   torch-it --rebuild=false            # Clean only, don't rebuild
   torch-it --dockerMode=false         # Skip Docker operations

@@ -15,6 +15,7 @@ import type { TorchRecord } from "./types";
 import { getTorchRcConfig } from "./utils/cleanup";
 import { statusMessage } from "./utils/status";
 import { showHelp } from "./utils/help";
+import { showConfig } from "./utils/config-display";
 
 // --- Initialisation ---
 const cliArgs = process.argv.slice(2);
@@ -25,13 +26,33 @@ if (cliArgs.includes("--help")) {
   process.exit(0);
 }
 
+// Check for --version flag
+if (cliArgs.includes("--version") || cliArgs.includes("-v")) {
+  const packageJson = require("../package.json");
+  outputToConsole(`torch-it v${packageJson.version}`, "info");
+  process.exit(0);
+}
+
+// Check for --config flag
+if (cliArgs.includes("--config")) {
+  showConfig();
+  process.exit(0);
+}
+
 const isDryRun = cliArgs.includes("--test");
 if (isDryRun) {
   process.env.TORCH_DRY_RUN = "1";
 }
 
 const torchRcConfig = getTorchRcConfig(
-  cliArgs.filter((arg) => arg !== "--test" && arg !== "--help"),
+  cliArgs.filter(
+    (arg) =>
+      arg !== "--test" &&
+      arg !== "--help" &&
+      arg !== "--version" &&
+      arg !== "-v" &&
+      arg !== "--config",
+  ),
 );
 setLoggerEnabled(torchRcConfig.logfile);
 if (torchRcConfig.logfile) {
