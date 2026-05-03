@@ -119,15 +119,23 @@ React, Next.js, Vue, Vite, SvelteKit, React Native, Expo, Remix, Qwik, Nuxt, Ast
 
 ### Docker Operations (Optional)
 
-Docker cleanup, rebuild, and launch run only when **Docker mode is enabled** (`dockerMode`: `true` in `torchrc.json` or `--dockerMode=true` on the CLI) **and** your project includes a `Dockerfile`, `docker-compose.yml`, or `docker-compose.yaml`. By default Docker mode is **off**, so local Docker environments are left alone unless you opt in.
+Runs only when **Docker mode is on** (`dockerMode`: `true` or `--dockerMode=true`) **and** the project root has a `Dockerfile` and/or **`docker-compose.yml` / `docker-compose.yaml`**. Default is **off**.
 
-When Docker mode is on and compose files exist, `torch-it` will:
+These steps target **Docker Compose**. You almost always want a Compose file; detection can trigger on a Dockerfile alone, but the commands below are Compose workflows, not a plain `docker build`.
 
-- **Stop and clean up Docker resources** (containers, images, volumes) if Docker is running.
-- **Rebuild Docker images** from scratch (when rebuild is enabled).
-- **Restart Docker services** in detached mode.
+**What runs, in order**
 
-`torch-it` detects Docker configuration files and only performs Docker steps when Docker mode is enabled.
+| When | What |
+|------|------|
+| **Start of run** | Checks `docker`, daemon (`docker info`), and `docker compose ps`. If those pass, runs **`docker compose down --rmi all --volumes`** — stops the stack and removes images and volumes tied to those services. Happens **before** local file/cache cleanup. |
+| **After dependency reinstall** | If **rebuild** is enabled: **`docker-compose build --pull --no-cache`**. This uses the **`docker-compose`** binary (with a hyphen); it is separate from **`docker compose`**. |
+| **If rebuild succeeded** | **`docker compose up -d`** — starts the stack in the background. |
+
+**`rebuild: false`:** still runs the teardown row when Docker mode is on; skips reinstall and skips rebuild + `up`.
+
+**`--test`:** only prints what it would run; nothing above executes.
+
+**Edge case:** If teardown hits trouble (e.g. `docker compose ps` fails) but Docker wasn’t skipped entirely, rebuild and `up` may still run. If Docker is skipped completely (no CLI, daemon down, no matching files, etc.), rebuild and `up` are skipped too.
 
 ---
 
@@ -278,10 +286,7 @@ This file should be ignored by git to avoid accidental commits. Add this to your
 
 ## Troubleshooting
 
-- If you see errors related to Docker, check:
-  1. Is Docker installed and running?
-  2. Does your project have Docker configuration files?
-  3. Are your Docker configuration files valid?
+- **Docker:** From the project root, does **`docker compose ps`** work? Is the **`docker-compose`** (hyphen) CLI on your PATH for rebuilds? Is the daemon up (`docker info`)?
 - If you see errors about missing `package.json`, initialize your project with `npm init -y` or add your project files.
 - For detailed information about any failures, check the `torch-it.log` file.
 
