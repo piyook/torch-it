@@ -6,10 +6,35 @@ import { installDependencies } from "./dependency";
 import type { TorchRecord } from "../types";
 import { DEFAULT_TORCH_RC_CONFIG } from "../types";
 import { statusMessage } from "./status";
+import { renderTorchConfigDisplay } from "./config-display";
+import { promptYesNo } from "./prompt";
 
-export function executeTorchWorkflow(
+export async function executeTorchWorkflow(
   torchRcConfig: typeof DEFAULT_TORCH_RC_CONFIG,
-): TorchRecord {
+  options: { assumeYes?: boolean } = {},
+): Promise<TorchRecord> {
+  const skipDestructiveConfirmation =
+    options.assumeYes === true ||
+    process.env.TORCH_DRY_RUN === "1" ||
+    process.stdin.isTTY !== true;
+
+  if (!skipDestructiveConfirmation) {
+    outputToConsole(
+      "\nReview the cleanup below. Matching paths and Docker actions (if enabled) will run next.",
+      "warn",
+    );
+    renderTorchConfigDisplay(torchRcConfig, { includeHelpFooter: false });
+    outputToConsole(
+      "\nThese targets will be removed where they exist. Package caches may be cleared and dependencies reinstalled per your settings.",
+      "warn",
+    );
+    const proceed = await promptYesNo("Continue? Type Yes or No (y/n): ");
+    if (!proceed) {
+      outputToConsole("Aborted.", "info");
+      process.exit(0);
+    }
+  }
+
   const torchRecord: TorchRecord = {
     dockerClean: "NO_DOCKER",
     buildAndCacheClean: false,
@@ -22,7 +47,7 @@ export function executeTorchWorkflow(
 
   // --- Docker Cleanup ---
   outputToConsole(`${ICONS.CLEAN} DOCKER CLEANUP`, "step");
-  torchRecord.dockerClean = dockerCleanup();
+  torchRecord.dockerClean = dockerCleanup(torchRcConfig);
 
   // --- Build/Cache Cleanup ---
   outputToConsole(`${ICONS.CLEAN} BUILD ARTIFACTS & CACHE CLEANUP`, "step");
@@ -51,7 +76,7 @@ export function executeTorchWorkflow(
     torchRcConfig.rebuild !== false
   ) {
     outputToConsole(`${ICONS.BUILD} DOCKER REBUILD`, "step");
-    torchRecord.dockerRebuild = dockerRebuild();
+    torchRecord.dockerRebuild = dockerRebuild(torchRcConfig);
   } else if (
     torchRecord.dockerClean !== "NO_DOCKER" &&
     torchRcConfig.rebuild === false
@@ -62,7 +87,7 @@ export function executeTorchWorkflow(
 
   // --- Docker Launch ---
   if (torchRecord.dockerRebuild) {
-    torchRecord.dockerLaunch = dockerLaunch();
+    torchRecord.dockerLaunch = dockerLaunch(torchRcConfig);
     outputToConsole(`${ICONS.ROCKET} LAUNCH`, "step");
   }
 

@@ -30,4 +30,11 @@ if (parsedArgs.isDryRun) {
 }
 
 // --- Execute Torch Workflow ---
-executeTorchWorkflow(torchRcConfig);
+void (async () => {
+  await executeTorchWorkflow(torchRcConfig, {
+    assumeYes: parsedArgs.assumeYes,
+  });
+})().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

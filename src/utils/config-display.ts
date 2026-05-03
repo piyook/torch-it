@@ -6,12 +6,23 @@ import {
   CUSTOM_DIRS,
   FILE_PATTERNS,
 } from "../constants/config";
-import { getTorchRcConfigFromFile, loadTorchRcCustomPaths } from "./cleanup";
+import { getTorchRcConfigFromFile } from "./cleanup";
 import { hasCmd } from "./system";
+import type { TorchRcConfig } from "../types";
 
-export const showConfig = () => {
-  const config = getTorchRcConfigFromFile();
-  const customPaths = loadTorchRcCustomPaths();
+function customPathsFromConfig(config: Required<TorchRcConfig>): string[] {
+  return [...config.customPaths, ...config.customDirs, ...config.customFiles]
+    .filter((entry): entry is string => typeof entry === "string")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+}
+
+export function renderTorchConfigDisplay(
+  config: Required<TorchRcConfig>,
+  options?: { includeHelpFooter?: boolean },
+): void {
+  const includeHelpFooter = options?.includeHelpFooter !== false;
+  const customPaths = customPathsFromConfig(config);
   const protectedPaths = config.protectedPaths;
 
   outputToConsole("=".repeat(60), "info");
@@ -176,7 +187,7 @@ export const showConfig = () => {
 
   // Custom paths from torchrc.json
   if (customPaths.length > 0) {
-    outputToConsole("\nCUSTOM PATHS FROM torchrc.json:", "info");
+    outputToConsole("\nCUSTOM PATHS:", "info");
     customPaths.forEach((path: string) => {
       const exists = fs.existsSync(path);
       const type = exists && fs.statSync(path).isDirectory() ? "DIR" : "FILE";
@@ -186,6 +197,12 @@ export const showConfig = () => {
   }
 
   outputToConsole("\n" + "=".repeat(60), "info");
-  outputToConsole("Use 'torch-it --help' for available options", "info");
-  outputToConsole("=".repeat(60), "info");
+  if (includeHelpFooter) {
+    outputToConsole("Use 'torch-it --help' for available options", "info");
+    outputToConsole("=".repeat(60), "info");
+  }
+}
+
+export const showConfig = () => {
+  renderTorchConfigDisplay(getTorchRcConfigFromFile());
 };

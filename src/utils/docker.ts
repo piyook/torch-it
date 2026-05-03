@@ -2,7 +2,7 @@ import * as fs from "fs";
 import { outputToConsole } from "./ui";
 import { hasCmd, run } from "./system";
 import { COLOURS } from "../constants/constants";
-import { getTorchRcConfig } from "./cleanup";
+import type { TorchRcConfig } from "../types";
 
 function hasDockerFiles(): boolean {
   return (
@@ -12,11 +12,10 @@ function hasDockerFiles(): boolean {
   );
 }
 
-function dockerCleanup() {
-  const config = getTorchRcConfig();
-  if (config.dockerMode === false) {
+function dockerCleanup(torchRcConfig: Required<TorchRcConfig>) {
+  if (torchRcConfig.dockerMode === false) {
     outputToConsole(
-      "Docker mode disabled in torchrc.json - skipping Docker operations",
+      "Docker mode disabled - skipping Docker operations",
       "info",
     );
     return "NO_DOCKER";
@@ -85,17 +84,13 @@ function dockerCleanup() {
   return "DOCKER_FAIL";
 }
 
-function dockerRebuild() {
-  const config = getTorchRcConfig();
-  if (config.dockerMode === false) {
+function dockerRebuild(torchRcConfig: Required<TorchRcConfig>) {
+  if (torchRcConfig.dockerMode === false) {
     return false;
   }
 
-  if (config.rebuild === false) {
-    outputToConsole(
-      "Rebuild disabled in torchrc.json - skipping Docker rebuild",
-      "info",
-    );
+  if (torchRcConfig.rebuild === false) {
+    outputToConsole("Rebuild disabled - skipping Docker rebuild", "info");
     return false;
   }
 
@@ -147,9 +142,8 @@ function dockerRebuild() {
   return true;
 }
 
-function dockerLaunch() {
-  const config = getTorchRcConfig();
-  if (config.dockerMode === false) {
+function dockerLaunch(torchRcConfig: Required<TorchRcConfig>) {
+  if (torchRcConfig.dockerMode === false) {
     return false;
   }
 

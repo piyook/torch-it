@@ -1,6 +1,6 @@
 {
   "name": "torch-it",
-  "version": "2.5.4",
+  "version": "2.6.0",
   "description": "CLI to reset, clean, and rebuild Node.js project environments.",
   "keywords": [
     "cleanup",

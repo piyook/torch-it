@@ -29,7 +29,7 @@ It's surprising how often this just fixes things. 🤞
 - **Comprehensive framework support** — handles React, Next.js, Vue, Vite, SvelteKit, Remix, Qwik, Nuxt, Astro, Angular, Solid, and 40+ more
 - **Smart file pattern matching** — removes `*.log`, `*.tgz`, `*.tar.gz`, and other temporary files automatically
 - **Fully customizable** — specify any directories or files to delete via `torchrc.json`
-- **Docker support** — removes containers, images, and volumes and rebuilds from scratch 🐳
+- **Docker support** — optional Docker teardown, rebuild, and launch when you enable Docker mode 🐳
 - **Cross-platform** — works on Windows, Linux, and macOS
 - **Zero-dependency** — lightweight and no additional packages required
 
@@ -117,15 +117,25 @@ React, Next.js, Vue, Vite, SvelteKit, React Native, Expo, Remix, Qwik, Nuxt, Ast
 - **Cleans package manager caches** for npm, yarn, and pnpm.
 - **Reinstalls dependencies** using your preferred package manager (npm, yarn, or pnpm).
 
-### Docker Operations (Only if Docker is Configured)
+### Docker Operations (Optional)
 
-If your project includes either a `Dockerfile`, `docker-compose.yml`, or `docker-compose.yaml`, `torch-it` will also:
+Runs only when **Docker mode is on** (`dockerMode`: `true` or `--dockerMode=true`) **and** the project root has a `Dockerfile` and/or **`docker-compose.yml` / `docker-compose.yaml`**. Default is **off**.
 
-- **Stop and clean up Docker resources** (containers, images, volumes) if Docker is running.
-- **Rebuild Docker images** from scratch.
-- **Restart Docker services** in detached mode.
+These steps target **Docker Compose**. You almost always want a Compose file; detection can trigger on a Dockerfile alone, but the commands below are Compose workflows, not a plain `docker build`.
 
-`torch-it` intelligently detects your project's configuration and only performs Docker operations when appropriate.
+**What runs, in order**
+
+| When | What |
+|------|------|
+| **Start of run** | Checks `docker`, daemon (`docker info`), and `docker compose ps`. If those pass, runs **`docker compose down --rmi all --volumes`** — stops the stack and removes images and volumes tied to those services. Happens **before** local file/cache cleanup. |
+| **After dependency reinstall** | If **rebuild** is enabled: **`docker-compose build --pull --no-cache`**. This uses the **`docker-compose`** binary (with a hyphen); it is separate from **`docker compose`**. |
+| **If rebuild succeeded** | **`docker compose up -d`** — starts the stack in the background. |
+
+**`rebuild: false`:** still runs the teardown row when Docker mode is on; skips reinstall and skips rebuild + `up`.
+
+**`--test`:** only prints what it would run; nothing above executes.
+
+**Edge case:** If teardown hits trouble (e.g. `docker compose ps` fails) but Docker wasn’t skipped entirely, rebuild and `up` may still run. If Docker is skipped completely (no CLI, daemon down, no matching files, etc.), rebuild and `up` are skipped too.
 
 ---
 
@@ -139,11 +149,13 @@ Install torch-it globally to run it from anywhere:
 npm install -g torch-it
 ```
 
-Then, in your project root,simply run:
+Then, in your project root, simply run:
 
 ```bash
 torch-it
 ```
+
+In an interactive terminal, `torch-it` prints the same cleanup preview as `--config` and asks you to confirm (**Yes** / **No**, or **y** / **n**) before it removes anything or touches Docker. Non-interactive environments (no TTY), `--test` dry runs, and **`--yes`** or **`-y`** skip that prompt.
 
 For per-project customisation, create a `torchrc.json` file in your project root (see Customization section below) or use command line flags (see Command Line Options section below).
 
@@ -177,9 +189,19 @@ Or directly:
 npx torch-it
 ```
 
+### Confirmation prompt
+
+Before destructive steps, `torch-it` shows effective settings and the files/directories that would be removed (same detail as `--config`), then asks **Continue? Type Yes or No (y/n):**. Answer **yes** or **y** to proceed; anything else cancels the run.
+
+This prompt is skipped when:
+
+- You pass **`--yes`** or **`-y`** (for CI, scripts, or automation).
+- You use **`--test`** (dry run; nothing is changed).
+- Standard input is **not a TTY** (for example some CI runners), so the tool proceeds without blocking.
+
 ### Dry Run (`--test`)
 
-Use `--test` to preview what `torch-it` would do without deleting directories, cleaning caches, installing dependencies, or changing Docker resources. Results are saved to the `torch-it.log` file.
+Use `--test` to preview what `torch-it` would do without deleting directories, cleaning caches, installing dependencies, or changing Docker resources. Dry run does not show the interactive confirmation prompt.
 
 ```bash
 torch-it --test
@@ -211,7 +233,7 @@ For project-level customization, create a local `torchrc.json` file in your proj
 {
   "customPaths": ["apps/web/.next", "services/api/tmp", ".turbo/cache", "coverage-final.json"],
   "protectedPaths": ["important-data/", "config/production.json"],
-  "dockerMode": true,
+  "dockerMode": false,
   "rebuild": true,
   "logfile": true
 }
@@ -219,7 +241,7 @@ For project-level customization, create a local `torchrc.json` file in your proj
 
 - `customPaths`: Array of additional directories and files to remove during cleanup. Supports both directories and files. torch-it will remove these in the same cleanup pass as the built-in targets.
 - `protectedPaths`: Array of directories and files to skip during cleanup. These paths will be preserved even if they match built-in or custom cleanup targets.
-- `dockerMode`: Boolean flag to enable/disable Docker operations. Set to `false` to skip all Docker cleanup, rebuild, and launch steps. Defaults to `true`.
+- `dockerMode`: Boolean flag to enable/disable Docker operations. Set to `true` to run Docker cleanup, rebuild, and launch when compose/Dockerfile files exist. Defaults to `false`.
 - `rebuild`: Boolean flag to enable/disable rebuild operations. Set to `false` to skip both **package manager dependency installation** and **Docker rebuild/launch** while still performing cleanup. Defaults to `true`.
 - `logfile`: Boolean flag to enable or disable writing runtime output to `torch-it.log`. Set to `true` to enable file logging. Defaults to `false`.
 
@@ -230,7 +252,7 @@ For project-level customization, create a local `torchrc.json` file in your proj
 You can override `torchrc.json` settings directly from the command line using flags. This is useful for one-off runs or CI/CD pipelines.
 
 ```bash
-torch-it --dockerMode=false --rebuild=false --customPaths=["temp/","logs/"]
+torch-it --yes --rebuild=false --customPaths=["temp/","logs/"]
 ```
 
 All configuration options can be overridden using `--optionName=value` syntax. For arrays and objects, use JSON syntax:
@@ -239,8 +261,9 @@ All configuration options can be overridden using `--optionName=value` syntax. F
 - `--version, -v` - Show version information and exit
 - `--config` - Show current configuration and exit
 - `--test` - Run in dry-run mode (preview changes without executing)
+- `--yes`, `-y` - Skip the interactive confirmation prompt (auto-confirm)
 - `--customPaths=["path1","path2"]`
-- `--dockerMode=false`
+- `--dockerMode=true` - Enable Docker steps when Docker files are present (`false` is the default)
 - `--rebuild=false`
 - `--logfile=true`
 
@@ -263,10 +286,7 @@ This file should be ignored by git to avoid accidental commits. Add this to your
 
 ## Troubleshooting
 
-- If you see errors related to Docker, check:
-  1. Is Docker installed and running?
-  2. Does your project have Docker configuration files?
-  3. Are your Docker configuration files valid?
+- **Docker:** From the project root, does **`docker compose ps`** work? Is the **`docker-compose`** (hyphen) CLI on your PATH for rebuilds? Is the daemon up (`docker info`)?
 - If you see errors about missing `package.json`, initialize your project with `npm init -y` or add your project files.
 - For detailed information about any failures, check the `torch-it.log` file.
 

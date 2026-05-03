@@ -50,6 +50,19 @@ describe("showHelp", () => {
     );
   });
 
+  it("includes --yes / -y option", () => {
+    showHelp();
+
+    expect(mockedOutputToConsole).toHaveBeenCalledWith(
+      expect.stringContaining("--yes"),
+      "info",
+    );
+    expect(mockedOutputToConsole).toHaveBeenCalledWith(
+      expect.stringContaining("-y"),
+      "info",
+    );
+  });
+
   it("includes configuration options", () => {
     showHelp();
 
