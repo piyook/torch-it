@@ -12,7 +12,8 @@ OPTIONS:
   --version, -v          Show version information and exit
   --config               Show current configuration and exit
   --test                 Run in dry-run mode (preview changes without executing)
-  --dockerMode=<bool>    Enable/disable Docker operations (default: true)
+  --yes, -y              Skip the confirmation prompt (same as answering yes)
+  --dockerMode=<bool>    Enable/disable Docker operations (default: false)
   --rebuild=<bool>       Enable/disable rebuild operations (default: true)
   --logfile=<bool>       Enable/disable file logging (default: false)
   --customPaths=<array>   Additional paths to remove during cleanup
@@ -23,8 +24,9 @@ EXAMPLES:
   torch-it --version                  # Show version information
   torch-it --config                   # Show current configuration
   torch-it --test                     # Preview what would be done
+  torch-it --yes                      # No confirmation prompt (same as -y)
   torch-it --rebuild=false            # Clean only, don't rebuild
-  torch-it --dockerMode=false         # Skip Docker operations
+  torch-it --dockerMode=true          # Enable Docker cleanup/rebuild when configured
   torch-it --logfile=true              # Enable file logging
   torch-it --customPaths=["temp/","logs/"]  # Clean additional paths
 
@@ -34,7 +36,7 @@ CONFIGURATION:
   {
     "customPaths": ["apps/web/.next", "coverage-final.json"],
     "protectedPaths": ["important-data/"],
-    "dockerMode": true,
+    "dockerMode": false,
     "rebuild": true,
     "logfile": false
   }

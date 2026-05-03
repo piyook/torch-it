@@ -8,6 +8,7 @@ export interface CliArgs {
   isVersion: boolean;
   isConfig: boolean;
   isDryRun: boolean;
+  assumeYes: boolean;
   filteredArgs: string[];
 }
 
@@ -16,6 +17,7 @@ export function parseCliArgs(args: string[]): CliArgs {
   const isVersion = args.includes("--version") || args.includes("-v");
   const isConfig = args.includes("--config");
   const isDryRun = args.includes("--test");
+  const assumeYes = args.includes("--yes") || args.includes("-y");
 
   const filteredArgs = args.filter(
     (arg) =>
@@ -23,7 +25,9 @@ export function parseCliArgs(args: string[]): CliArgs {
       arg !== "--help" &&
       arg !== "--version" &&
       arg !== "-v" &&
-      arg !== "--config",
+      arg !== "--config" &&
+      arg !== "--yes" &&
+      arg !== "-y",
   );
 
   return {
@@ -31,6 +35,7 @@ export function parseCliArgs(args: string[]): CliArgs {
     isVersion,
     isConfig,
     isDryRun,
+    assumeYes,
     filteredArgs,
   };
 }
