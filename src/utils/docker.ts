@@ -111,7 +111,7 @@ function dockerRebuild(torchRcConfig: Required<TorchRcConfig>) {
       "warn",
     );
     outputToConsole(
-      "Start Docker manually and run 'docker-compose build --pull --no-cache' later",
+      "Start Docker manually and run 'docker compose build --pull --no-cache' later",
       "info",
     );
     return false;
@@ -126,13 +126,13 @@ function dockerRebuild(torchRcConfig: Required<TorchRcConfig>) {
   );
   if (isDryRun) {
     outputToConsole(
-      "Dry-run: would run 'docker-compose build --pull --no-cache'",
+      "Dry-run: would run 'docker compose build --pull --no-cache'",
       "info",
     );
     return true;
   }
 
-  if (!run("docker-compose build --pull --no-cache")) {
+  if (!run("docker compose build --pull --no-cache")) {
     outputToConsole(
       "Docker build encountered issues - check torch-it.log for details",
       "fail",
