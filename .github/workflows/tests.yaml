@@ -74,7 +74,8 @@ jobs:
       - run: npm audit --omit=dev
 
   unit_tests:
-    needs: [lint, format, branch_name, commitlint, audit]
+    if: always()
+    needs: [lint, format, audit]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
