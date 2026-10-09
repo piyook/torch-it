@@ -81,6 +81,38 @@ describe("statusMessage", () => {
     expect(lines).toContain("❌ Failed to install dependencies");
   });
 
+  it("reports paths that could not be removed", () => {
+    const lines = linesFor({ ...successRecord, cleanupFailures: 2 });
+
+    expect(lines[0]).toContain("TORCHED WITH ERRORS");
+    expect(lines).toContain(
+      "❌ 2 path(s) could not be removed (in use or locked?)",
+    );
+    expect(lines.join(" ")).not.toContain("already clean");
+  });
+
+  it("reports Docker mode that could not run", () => {
+    const lines = linesFor({
+      ...successRecord,
+      dockerClean: "DOCKER_UNAVAILABLE",
+    });
+
+    expect(lines[0]).toContain("TORCHED WITH ERRORS");
+    expect(lines).toContain(
+      "❌ Docker is not available - Docker steps did not run",
+    );
+  });
+
+  it("does not claim a dry run torched anything when it found problems", () => {
+    const lines = linesFor({
+      ...successRecord,
+      dockerClean: "DOCKER_UNAVAILABLE",
+      dryRun: true,
+    });
+
+    expect(lines[0]).toContain("DRY RUN FOUND PROBLEMS - NOTHING WAS CHANGED");
+  });
+
   it("makes clear that a dry run changed nothing", () => {
     const lines = linesFor({ ...successRecord, dryRun: true });
 
@@ -106,6 +138,16 @@ describe("torchFailed", () => {
       false,
     ],
     ["install failed", { ...successRecord, dependencyInstall: false }, true],
+    [
+      "a path could not be removed",
+      { ...successRecord, cleanupFailures: 1 },
+      true,
+    ],
+    [
+      "docker mode is on but docker is unavailable",
+      { ...successRecord, dockerClean: "DOCKER_UNAVAILABLE" },
+      true,
+    ],
     [
       "docker cleanup failed",
       { ...successRecord, dockerClean: "DOCKER_FAIL" },

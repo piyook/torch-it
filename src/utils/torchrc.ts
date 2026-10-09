@@ -2,6 +2,8 @@ import * as fs from "fs";
 import { outputToConsole } from "./ui";
 import type { TorchRcConfig } from "../types";
 import { DEFAULT_TORCH_RC_CONFIG } from "../types";
+import { isInsideProject } from "./cleanup-helpers";
+import { LOG_FILE } from "./logger";
 
 const TORCH_RC_PATH = "torchrc.json";
 
@@ -12,6 +14,11 @@ const ARRAY_KEYS = [
   "protectedPaths",
 ] as const;
 const BOOLEAN_KEYS = ["dockerMode", "logfile", "rebuild"] as const;
+const DELETION_KEYS: readonly string[] = [
+  "customPaths",
+  "customDirs",
+  "customFiles",
+];
 
 type ArrayKey = (typeof ARRAY_KEYS)[number];
 type BooleanKey = (typeof BOOLEAN_KEYS)[number];
@@ -27,6 +34,31 @@ const cleanPathList = (entries: string[]): string[] =>
 const isStringArray = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((entry) => typeof entry === "string");
 
+const applyPathList = (
+  config: TorchRcConfig,
+  key: ArrayKey,
+  value: unknown,
+  label: string,
+  problems: string[],
+): void => {
+  if (!isStringArray(value)) {
+    problems.push(`${label} must be an array of strings`);
+    return;
+  }
+
+  const paths = cleanPathList(value);
+  if (DELETION_KEYS.includes(key)) {
+    paths
+      .filter((entry) => !isInsideProject(entry))
+      .forEach((entry) =>
+        problems.push(
+          `${label} entry "${entry}" is the project root or outside it`,
+        ),
+      );
+  }
+  config[key] = paths;
+};
+
 // Applies one option to the config, or records why it was rejected.
 const applyOption = (
   config: TorchRcConfig,
@@ -36,11 +68,7 @@ const applyOption = (
   problems: string[],
 ): void => {
   if (isArrayKey(key)) {
-    if (isStringArray(value)) {
-      config[key] = cleanPathList(value);
-    } else {
-      problems.push(`${label} must be an array of strings`);
-    }
+    applyPathList(config, key, value, label, problems);
   } else if (isBooleanKey(key)) {
     if (typeof value === "boolean") {
       config[key] = value;
@@ -134,6 +162,21 @@ export type ResolvedTorchRcConfig = {
   problems: string[];
 };
 
+// A list on the command line adds to the one in torchrc.json. Replacing it
+// would silently drop the protectedPaths the file sets.
+const mergePathLists = (
+  fileConfig: TorchRcConfig,
+  cliOverrides: TorchRcConfig,
+): TorchRcConfig => {
+  const merged: TorchRcConfig = {};
+  for (const key of ARRAY_KEYS) {
+    merged[key] = [
+      ...new Set([...(fileConfig[key] ?? []), ...(cliOverrides[key] ?? [])]),
+    ];
+  }
+  return merged;
+};
+
 // CLI overrides take precedence over torchrc.json, which takes precedence over defaults
 export const resolveTorchRcConfig = (
   cliArgs: string[] = [],
@@ -143,7 +186,12 @@ export const resolveTorchRcConfig = (
   const cliOverrides = parseCliOverrides(cliArgs, problems);
 
   return {
-    config: { ...DEFAULT_TORCH_RC_CONFIG, ...fileConfig, ...cliOverrides },
+    config: {
+      ...DEFAULT_TORCH_RC_CONFIG,
+      ...fileConfig,
+      ...cliOverrides,
+      ...mergePathLists(fileConfig, cliOverrides),
+    },
     problems,
   };
 };
@@ -173,3 +221,7 @@ export const getCustomPaths = (config: Required<TorchRcConfig>): string[] => [
     ...config.customFiles,
   ]),
 ];
+
+// The log being written by this run must survive the *.log sweep
+export const getProtectedPaths = (config: Required<TorchRcConfig>): string[] =>
+  config.logfile ? [...config.protectedPaths, LOG_FILE] : config.protectedPaths;

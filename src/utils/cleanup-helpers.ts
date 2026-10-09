@@ -1,4 +1,5 @@
 import * as fs from "fs";
+import * as path from "path";
 import { outputToConsole } from "./ui";
 
 export interface CleanupOptions {
@@ -6,25 +7,43 @@ export interface CleanupOptions {
   protectedPaths: string[];
 }
 
-// "./important-data/" and "important-data\" both mean "important-data"
+// Project-relative path with "/" separators, so "./dist/", "dist\" and
+// "apps/../dist" are all "dist". "" is the project root; a leading ".." is outside it.
 const normalisePath = (target: string): string =>
-  target
-    .trim()
-    .replace(/\\/g, "/")
-    .replace(/^(\.\/)+/, "")
-    .replace(/\/+$/, "");
+  path
+    .relative(
+      process.cwd(),
+      path.resolve(target.trim().replace(/\\/g, path.sep)),
+    )
+    .replace(/\\/g, "/");
+
+// Compared without case: on Windows and macOS "Dist" and "dist" are one folder,
+// and elsewhere protecting both is the safe side to err on.
+const comparisonKey = (target: string): string =>
+  normalisePath(target).toLowerCase();
 
 const isSameOrInside = (target: string, parent: string): boolean =>
-  parent.length > 0 && (target === parent || target.startsWith(parent + "/"));
+  parent === "" || target === parent || target.startsWith(parent + "/");
+
+// False for the project root itself and for anything outside it
+export function isInsideProject(target: string): boolean {
+  const relative = normalisePath(target);
+  return (
+    relative !== "" &&
+    relative !== ".." &&
+    !relative.startsWith("../") &&
+    !path.isAbsolute(relative)
+  );
+}
 
 // True when the target is a protected path or sits inside one
 export function isPathProtected(
   target: string,
   protectedPaths: string[],
 ): boolean {
-  const normalisedTarget = normalisePath(target);
+  const targetKey = comparisonKey(target);
   return protectedPaths.some((protectedPath) =>
-    isSameOrInside(normalisedTarget, normalisePath(protectedPath)),
+    isSameOrInside(targetKey, comparisonKey(protectedPath)),
   );
 }
 
@@ -33,12 +52,11 @@ export function containsProtectedPath(
   target: string,
   protectedPaths: string[],
 ): boolean {
-  const normalisedTarget = normalisePath(target);
+  const targetKey = comparisonKey(target);
   return protectedPaths.some((protectedPath) => {
-    const normalisedProtected = normalisePath(protectedPath);
+    const protectedKey = comparisonKey(protectedPath);
     return (
-      normalisedProtected !== normalisedTarget &&
-      isSameOrInside(normalisedProtected, normalisedTarget)
+      protectedKey !== targetKey && isSameOrInside(protectedKey, targetKey)
     );
   });
 }
@@ -48,6 +66,11 @@ export function filterProtectedTargets(
   protectedPaths: string[],
 ): string[] {
   return targets.filter((target) => !isPathProtected(target, protectedPaths));
+}
+
+// A protected path that is not on disk has nothing to keep
+export function existingPaths(paths: string[]): string[] {
+  return paths.filter((entry) => fs.existsSync(entry));
 }
 
 function globToRegExp(pattern: string): RegExp {
@@ -68,7 +91,9 @@ export function matchRootFiles(pattern: string): string[] {
 
 export function createCleanupTargetHandler(options: CleanupOptions) {
   const { isDryRun, protectedPaths } = options;
+  const existingProtectedPaths = existingPaths(protectedPaths);
   let removedCount = 0;
+  let failedCount = 0;
 
   const removeTarget = (target: string): void => {
     outputToConsole(
@@ -86,31 +111,52 @@ export function createCleanupTargetHandler(options: CleanupOptions) {
       removedCount++;
     } catch {
       outputToConsole(`Failed to remove ${target}`, "fail");
+      failedCount++;
     }
   };
 
-  const holdsProtectedPath = (target: string): boolean =>
-    containsProtectedPath(target, protectedPaths) &&
-    fs.statSync(target).isDirectory();
+  // Keep the protected entries and remove everything around them
+  const removeAroundProtectedPaths = (target: string): void => {
+    // Walking a link would empty the folder it points to, which may be elsewhere
+    if (fs.lstatSync(target).isSymbolicLink()) {
+      outputToConsole(
+        `Skipping ${target}: it is a link and a protected path lies inside it`,
+        "warn",
+      );
+      return;
+    }
+
+    for (const entry of fs.readdirSync(target)) {
+      cleanupTarget(`${normalisePath(target)}/${entry}`);
+    }
+  };
 
   const cleanupTarget = (target: string): void => {
     if (!fs.existsSync(target) || isPathProtected(target, protectedPaths)) {
       return;
     }
 
-    if (!holdsProtectedPath(target)) {
+    if (!isInsideProject(target)) {
+      outputToConsole(`Skipping ${target}: not inside the project`, "warn");
+      return;
+    }
+
+    if (!containsProtectedPath(target, existingProtectedPaths)) {
       removeTarget(target);
       return;
     }
 
-    // Keep the protected entries and remove everything around them
-    for (const entry of fs.readdirSync(target)) {
-      cleanupTarget(`${normalisePath(target)}/${entry}`);
+    try {
+      removeAroundProtectedPaths(target);
+    } catch {
+      outputToConsole(`Failed to read ${target}`, "fail");
+      failedCount++;
     }
   };
 
   return {
     removedCount: () => removedCount,
+    failedCount: () => failedCount,
     cleanupTarget,
   };
 }

@@ -12,6 +12,7 @@ vi.mock("../../src/utils/ui", () => ({
 import * as fs from "fs";
 import {
   getCustomPaths,
+  getProtectedPaths,
   getTorchRcConfig,
   resolveTorchRcConfig,
 } from "../../src/utils/torchrc";
@@ -72,8 +73,48 @@ describe("resolveTorchRcConfig from torchrc.json", () => {
 });
 
 describe("resolveTorchRcConfig from CLI arguments", () => {
-  it("overrides file config with CLI arguments", () => {
-    setTorchRc({ rebuild: true, customPaths: ["from-file"] });
+  it("adds CLI lists to the torchrc.json lists instead of replacing them", () => {
+    setTorchRc({
+      protectedPaths: ["important-data", "dist/keep.json"],
+      customPaths: ["from-file"],
+    });
+
+    const { config, problems } = resolveTorchRcConfig([
+      "--protectedPaths=coverage,important-data",
+      "--customPaths=from-cli",
+    ]);
+
+    expect(problems).toEqual([]);
+    expect(config.protectedPaths).toEqual([
+      "important-data",
+      "dist/keep.json",
+      "coverage",
+    ]);
+    expect(config.customPaths).toEqual(["from-file", "from-cli"]);
+  });
+
+  it.each([".", "./", "..", "../sibling", "apps/../..", "/"])(
+    "refuses to delete %s, which is the project root or outside it",
+    (entry) => {
+      expect(resolveTorchRcConfig([`--customPaths=${entry}`]).problems).toEqual(
+        [`--customPaths entry "${entry}" is the project root or outside it`],
+      );
+
+      setTorchRc({ customDirs: [entry] });
+      expect(resolveTorchRcConfig().problems).toEqual([
+        `torchrc.json "customDirs" entry "${entry}" is the project root or outside it`,
+      ]);
+    },
+  );
+
+  it("allows protectedPaths to name anything", () => {
+    expect(resolveTorchRcConfig(["--protectedPaths=..,."]).problems).toEqual(
+      [],
+    );
+  });
+
+  it("overrides file booleans with CLI arguments", () => {
+    setTorchRc({ rebuild: true });
 
     const { config, problems } = resolveTorchRcConfig([
       "--dockerMode=true",
@@ -140,6 +181,18 @@ describe("getTorchRcConfig", () => {
     );
     expect(mockedExit).toHaveBeenCalledWith(1);
     mockedExit.mockRestore();
+  });
+});
+
+describe("getProtectedPaths", () => {
+  it("adds the log file only while logging is on", () => {
+    const config = { ...DEFAULT_TORCH_RC_CONFIG, protectedPaths: ["dist"] };
+
+    expect(getProtectedPaths(config)).toEqual(["dist"]);
+    expect(getProtectedPaths({ ...config, logfile: true })).toEqual([
+      "dist",
+      "torch-it.log",
+    ]);
   });
 });
 

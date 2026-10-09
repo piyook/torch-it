@@ -19,6 +19,8 @@ OPTIONS:
   --customPaths=<list>   Additional paths to remove during cleanup (comma-separated)
   --protectedPaths=<list> Paths to skip during cleanup (comma-separated)
 
+  Lists given here are added to the ones in torchrc.json.
+
 EXAMPLES:
   torch-it                           # Run with default settings
   torch-it --version                  # Show version information
@@ -32,8 +34,9 @@ EXAMPLES:
   torch-it --protectedPaths=dist      # Keep a path that would otherwise be removed
 
 EXIT CODES:
-  0  Finished (or nothing to do)
+  0  Every step succeeded (or nothing to do)
   1  Invalid options, no confirmation possible, or a step failed
+     (a path could not be removed, install failed, Docker unavailable or failed)
 
 CONFIGURATION:
   Create a torchrc.json file in your project root for persistent settings:

@@ -1,5 +1,5 @@
 export type TorchRecord = {
-  dockerClean: "NO_DOCKER" | "DOCKER_FAIL" | "OK";
+  dockerClean: "NO_DOCKER" | "DOCKER_UNAVAILABLE" | "DOCKER_FAIL" | "OK";
   buildAndCacheClean: boolean;
   packageManagerClean: boolean;
   dependencyInstall: boolean;
@@ -8,6 +8,7 @@ export type TorchRecord = {
   logfile?: boolean;
   rebuild?: boolean;
   dryRun?: boolean;
+  cleanupFailures?: number;
 };
 
 export type TorchRcConfig = {

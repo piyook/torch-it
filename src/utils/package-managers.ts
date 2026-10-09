@@ -11,7 +11,7 @@ interface PackageManagerConfig {
   cacheCleanCommand: string;
 }
 
-export const PACKAGE_MANAGERS: Record<PackageManager, PackageManagerConfig> = {
+const PACKAGE_MANAGERS: Record<PackageManager, PackageManagerConfig> = {
   npm: {
     name: "npm",
     lockFile: "package-lock.json",
@@ -48,15 +48,19 @@ export function detectPackageManager(): PackageManager | null {
   return null;
 }
 
+// "pnpm (detected pnpm-lock.yaml)" or "npm (fallback)"
+export function describePackageManager(pm: PackageManager): string {
+  const { lockFile } = PACKAGE_MANAGERS[pm];
+  return fs.existsSync(lockFile)
+    ? `${pm} (detected ${lockFile})`
+    : `${pm} (fallback)`;
+}
+
 export function installWithPackageManager(pm: PackageManager): boolean {
   const isDryRun = process.env.TORCH_DRY_RUN === "1";
   const config = PACKAGE_MANAGERS[pm];
 
-  const detectionMessage = fs.existsSync(config.lockFile)
-    ? `Using ${pm} (detected ${config.lockFile})...`
-    : `Using ${pm} (fallback)...`;
-
-  outputToConsole(detectionMessage, "step");
+  outputToConsole(`Using ${describePackageManager(pm)}...`, "step");
 
   if (isDryRun || run(config.installCommand)) {
     outputToConsole(

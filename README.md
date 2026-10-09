@@ -97,6 +97,8 @@ torch-it --yes   # or -y
 
 `--yes` is required when there is no interactive terminal. Without it, `torch-it` exits with code `1` and changes nothing.
 
+Some Git Bash windows on Windows do not count as a terminal. If you get this message there, run `winpty torch-it`, or use PowerShell or Windows Terminal.
+
 ### Dry run (preview only, no changes)
 
 ```bash
@@ -117,8 +119,8 @@ Displays all active settings, every cleanup target, custom paths, protected path
 
 | Code | Meaning |
 |------|---------|
-| `0` | Finished, or there was nothing to do |
-| `1` | Invalid options, no way to confirm, or a step failed (dependency install, Docker) |
+| `0` | Every step that was meant to run succeeded, or there was nothing to do |
+| `1` | Invalid options, no way to confirm, or a step failed: a path could not be removed, dependency install failed, or Docker mode is on and Docker is unavailable or a Docker step failed |
 
 ---
 
@@ -146,20 +148,24 @@ Create a `torchrc.json` file in your project root to customise behaviour. Everyt
 
 `customDirs` and `customFiles` are also accepted and behave exactly like `customPaths`.
 
-Paths are relative to the project root. A trailing slash or leading `./` makes no difference: `important-data`, `important-data/` and `./important-data` are the same path.
+Paths are relative to the project root. A trailing slash, a leading `./` and letter case make no difference: `important-data`, `important-data/`, `./important-data` and `Important-Data` are the same path.
+
+`torch-it` only deletes inside the directory it is run in. A `customPaths` entry that is the project root or outside it (`.`, `..`, `../other`) stops the run.
+
+If a target is a symbolic link with a protected path inside it, the link is left alone rather than followed.
 
 An unknown option or a value of the wrong type, in `torchrc.json` or on the command line, stops `torch-it` before anything is deleted. A typo in `protectedPaths` should never cost you the files you meant to keep.
 
 ### Command line overrides
 
-Any config option can be overridden with a flag. Flags take precedence over `torchrc.json`.
+Any config option can be set with a flag. For the true/false options, flags take precedence over `torchrc.json`.
 
 ```bash
 torch-it --yes --rebuild=false --customPaths=temp,logs
 torch-it --dockerMode=true --logfile=true
 ```
 
-A list flag replaces the list of the same name in `torchrc.json`; the two are not merged. `--protectedPaths=coverage` on its own drops the paths your `torchrc.json` protects, so repeat them in the flag or add the new path to the file.
+A list flag adds to the list of the same name in `torchrc.json`: `--protectedPaths=coverage` protects `coverage` as well as everything the file protects. To take a path out of a list, edit the file.
 
 List options take comma-separated paths. A JSON array works too, but most shells need it quoted: `'--customPaths=["temp","logs"]'`.
 
@@ -253,6 +259,8 @@ torch-it.log
 
 ## Troubleshooting
 
+**"N path(s) could not be removed":** Something still has those files open, usually a dev server, a test watcher or your editor holding `node_modules`. Stop it and run `torch-it` again.
+
 **Docker issues:** Docker mode needs a Compose file in the project root. Run `docker compose ps` there to check if Compose is working. For rebuilds, confirm `docker compose` is on your PATH. Check that the Docker daemon is running with `docker info`.
 
 **Missing `package.json`:** Run `npm init -y` to initialise a project, or make sure you're in the right directory.
@@ -271,7 +279,9 @@ Version 3 closes several ways a run could delete more than intended. If you used
 | An invalid `torchrc.json`, an unknown option or a value of the wrong type stops the run. Before, it was ignored | Fix the option it names |
 | `lib`, `es`, `cjs` and `umd` are no longer deleted by default | Add them to `customPaths` if your build writes to them |
 | Only the cache of the package manager your project uses is cleaned, not every one installed | Nothing |
-| Exit code is `1` when the dependency install or a Docker step fails | Check scripts that assumed `0` |
+| Exit code is `1` when a path can not be removed, the dependency install fails, or Docker mode is on and Docker is unavailable or a Docker step fails | Check scripts that assumed `0` |
+| A `customPaths` entry that is the project root or outside it is refused | Run `torch-it` from the directory you want cleaned |
+| Protected paths are matched without regard to case | Nothing |
 | Docker mode needs a Compose file; a `Dockerfile` alone is skipped. `compose.yaml` and `compose.yml` are now recognised | Nothing |
 | `*.log`, `*.tgz` and `*.tar.gz` match those extensions only. Before, `*.log` also caught root files such as `catalog.json` | Nothing |
 | List flags take comma-separated paths: `--customPaths=temp,logs` | The quoted JSON form still works |

@@ -15,6 +15,7 @@ vi.mock("../src/utils/cleanup", () => ({
 vi.mock("../src/utils/torchrc", () => ({
   getTorchRcConfig: vi.fn(),
   getCustomPaths: vi.fn(() => []),
+  getProtectedPaths: vi.fn(() => []),
 }));
 
 vi.mock("../src/utils/dependency", () => ({
@@ -49,6 +50,7 @@ import {
 import { getTorchRcConfig } from "../src/utils/torchrc";
 import { installDependencies } from "../src/utils/dependency";
 import { outputToConsole, printRisingFromAshesBanner } from "../src/utils/ui";
+import { clearLog } from "../src/utils/logger";
 
 const mockedDockerCleanup = vi.mocked(dockerCleanup);
 const mockedDockerRebuild = vi.mocked(dockerRebuild);
@@ -69,6 +71,7 @@ describe("torch main functionality", () => {
     // Mock process.argv
     process.argv = ["node", "torch-it", "--yes"];
     delete process.env.TORCH_DRY_RUN;
+    mockedCleanupBuildsAndCaches.mockReturnValue({ cleaned: true, failed: 0 });
   });
 
   it("performs dependency installation when rebuild is true", async () => {
@@ -83,7 +86,7 @@ describe("torch main functionality", () => {
     });
 
     mockedDockerCleanup.mockReturnValue("OK");
-    mockedCleanupBuildsAndCaches.mockReturnValue(true);
+    mockedCleanupBuildsAndCaches.mockReturnValue({ cleaned: true, failed: 0 });
     mockedCleanupPackageManagerCaches.mockReturnValue(true);
     mockedInstallDependencies.mockReturnValue(true);
     mockedDockerRebuild.mockReturnValue(true);
@@ -110,7 +113,7 @@ describe("torch main functionality", () => {
     });
 
     mockedDockerCleanup.mockReturnValue("OK");
-    mockedCleanupBuildsAndCaches.mockReturnValue(true);
+    mockedCleanupBuildsAndCaches.mockReturnValue({ cleaned: true, failed: 0 });
     mockedCleanupPackageManagerCaches.mockReturnValue(true);
 
     // Import and run the main module
@@ -142,7 +145,7 @@ describe("torch main functionality", () => {
     });
 
     mockedDockerCleanup.mockReturnValue("NO_DOCKER");
-    mockedCleanupBuildsAndCaches.mockReturnValue(true);
+    mockedCleanupBuildsAndCaches.mockReturnValue({ cleaned: true, failed: 0 });
     mockedCleanupPackageManagerCaches.mockReturnValue(true);
     mockedInstallDependencies.mockReturnValue(true);
 
@@ -162,26 +165,24 @@ describe("torch main functionality", () => {
 
     // Stop at the exit, as the real process would
     const originalExit = process.exit;
-    process.exit = vi.fn().mockImplementationOnce(() => {
+    process.exit = vi.fn(() => {
       throw new Error("exit");
     }) as any;
-    const mockedConsoleError = vi
-      .spyOn(console, "error")
-      .mockImplementation(() => {});
 
     try {
-      await import("../src/torch.js");
-      await vi.waitFor(() => expect(process.exit).toHaveBeenCalledWith(1));
+      await expect(import("../src/torch.js")).rejects.toThrow("exit");
 
+      expect(process.exit).toHaveBeenCalledWith(1);
       expect(mockedOutputToConsole).toHaveBeenCalledWith(
         expect.stringContaining("Re-run with --yes"),
         "fail",
       );
+      // Refused before anything is written, including the log file
+      expect(vi.mocked(clearLog)).not.toHaveBeenCalled();
       expect(mockedCleanupBuildsAndCaches).not.toHaveBeenCalled();
     } finally {
       process.exit = originalExit;
       process.stdin.isTTY = originalIsTTY;
-      mockedConsoleError.mockRestore();
     }
   });
 
@@ -199,7 +200,7 @@ describe("torch main functionality", () => {
     });
 
     mockedDockerCleanup.mockReturnValue("OK");
-    mockedCleanupBuildsAndCaches.mockReturnValue(true);
+    mockedCleanupBuildsAndCaches.mockReturnValue({ cleaned: true, failed: 0 });
     mockedCleanupPackageManagerCaches.mockReturnValue(true);
     mockedInstallDependencies.mockReturnValue(true);
     mockedDockerRebuild.mockReturnValue(true);
