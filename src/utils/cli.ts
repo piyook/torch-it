@@ -2,6 +2,7 @@ import { setLoggerEnabled } from "./logger";
 import { outputToConsole } from "./ui";
 import { showHelp } from "./help";
 import { showConfig } from "./config-display";
+import { getTorchRcConfig } from "./torchrc";
 
 export interface CliArgs {
   isHelp: boolean;
@@ -56,7 +57,7 @@ export function handleSpecialFlags(args: CliArgs): void {
 
   if (args.isConfig) {
     setLoggerEnabled(false);
-    showConfig();
+    showConfig(getTorchRcConfig(args.filteredArgs));
     process.exit(0);
   }
 

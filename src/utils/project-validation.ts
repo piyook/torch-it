@@ -6,7 +6,7 @@ import { outputToConsole } from "./ui";
  * Checks if the current directory contains a Node.js project
  * by looking for package.json, yarn.lock, pnpm-lock.yaml, or npm-shrinkwrap.json
  */
-export function isNodeProject(): boolean {
+function isNodeProject(): boolean {
   const requiredFiles = [
     "package.json",
     "yarn.lock",

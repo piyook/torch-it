@@ -19,7 +19,7 @@ cd your-project
 torch-it                  # clean and rebuild
 ```
 
-`torch-it` will show you a preview of what it's about to delete and ask for confirmation before doing anything destructive.
+`torch-it` will show you a preview of what it's about to delete and ask for confirmation before doing anything destructive. It never deletes unprompted: where there is no terminal to ask on (CI, pipes), it stops unless you pass `--yes`.
 
 ---
 
@@ -30,12 +30,12 @@ torch-it                  # clean and rebuild
 1. Removes build artifacts and cache directories (50+ targets — `node_modules`, `dist`, `.next`, `.cache`, `.vite`, etc.)
 2. Removes log files and temporary files (`*.log`, `*.tgz`, `*.tar.gz`, etc.)
 3. Removes any custom paths you define in `torchrc.json`
-4. Cleans your package manager's cache (npm, yarn, or pnpm)
+4. Cleans the cache of the package manager your project uses (npm, yarn, or pnpm, picked from the lockfile)
 5. Reinstalls all dependencies
 
 ### Optionally runs (Docker mode)
 
-When `dockerMode: true` and a `docker-compose.yml` or `Dockerfile` is present:
+When `dockerMode: true` and a Compose file is present (`compose.yaml`, `compose.yml`, `docker-compose.yaml` or `docker-compose.yml`):
 
 | Step | When | Command |
 |------|------|---------|
@@ -43,7 +43,7 @@ When `dockerMode: true` and a `docker-compose.yml` or `Dockerfile` is present:
 | Rebuild | After dependency install | `docker compose build --pull --no-cache` |
 | Start | After successful rebuild | `docker compose up -d` |
 
-> **Note:** All Docker operations use `docker compose` (plugin). Ensure Docker Compose plugin is installed and on your PATH.
+> **Note:** All Docker operations use `docker compose` (plugin). Ensure Docker Compose plugin is installed and on your PATH. A project with only a `Dockerfile` and no Compose file is left alone.
 
 ---
 
@@ -93,6 +93,8 @@ Shows a preview of what will be deleted, then prompts: **Continue? Type Yes or N
 torch-it --yes   # or -y
 ```
 
+`--yes` is required when there is no interactive terminal. Without it, `torch-it` exits with code `1` and changes nothing.
+
 ### Dry run (preview only, no changes)
 
 ```bash
@@ -105,7 +107,14 @@ torch-it --test
 torch-it --config
 ```
 
-Displays all active settings, every cleanup target, custom paths, protected paths, and Docker settings. Useful for verifying your setup before running.
+Displays all active settings, every cleanup target, custom paths, protected paths, and Docker settings. Useful for verifying your setup before running. Command line overrides are included, so `torch-it --config --protectedPaths=dist` shows what that run would do.
+
+### Exit codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | Finished, or there was nothing to do |
+| `1` | Invalid options, no way to confirm, or a step failed (dependency install, Docker) |
 
 ---
 
@@ -126,19 +135,27 @@ Create a `torchrc.json` file in your project root to customise behaviour. Everyt
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `customPaths` | `string[]` | `[]` | Extra directories or files to delete during cleanup |
-| `protectedPaths` | `string[]` | `[]` | Paths to skip — preserved even if they match built-in targets |
+| `protectedPaths` | `string[]` | `[]` | Paths to skip — preserved even if they match built-in targets. A protected path inside a target (e.g. `dist/keep.json`) is kept while the rest of the target is removed |
 | `dockerMode` | `boolean` | `false` | Enable Docker teardown, rebuild, and launch |
 | `rebuild` | `boolean` | `true` | Set to `false` to skip dependency reinstall and Docker rebuild (cleanup still runs) |
 | `logfile` | `boolean` | `false` | Write runtime output to `torch-it.log` in the project root |
+
+`customDirs` and `customFiles` are also accepted and behave exactly like `customPaths`.
+
+Paths are relative to the project root. A trailing slash or leading `./` makes no difference: `important-data`, `important-data/` and `./important-data` are the same path.
+
+An unknown option or a value of the wrong type, in `torchrc.json` or on the command line, stops `torch-it` before anything is deleted. A typo in `protectedPaths` should never cost you the files you meant to keep.
 
 ### Command line overrides
 
 Any config option can be overridden with a flag. Flags take precedence over `torchrc.json`.
 
 ```bash
-torch-it --yes --rebuild=false --customPaths=["temp/","logs/"]
+torch-it --yes --rebuild=false --customPaths=temp,logs
 torch-it --dockerMode=true --logfile=true
 ```
+
+List options take comma-separated paths. A JSON array works too, but most shells need it quoted: `'--customPaths=["temp","logs"]'`.
 
 **All flags:**
 
@@ -149,8 +166,8 @@ torch-it --dockerMode=true --logfile=true
 | `--config` | Show current configuration and exit |
 | `--test` | Dry run — preview changes without executing |
 | `--yes`, `-y` | Skip confirmation prompt |
-| `--customPaths=[...]` | Extra paths to delete |
-| `--protectedPaths=[...]` | Paths to preserve |
+| `--customPaths=a,b` | Extra paths to delete |
+| `--protectedPaths=a,b` | Paths to preserve |
 | `--dockerMode=true\|false` | Enable/disable Docker steps |
 | `--rebuild=true\|false` | Enable/disable dependency reinstall and Docker rebuild |
 | `--logfile=true\|false` | Enable/disable log file output |
@@ -170,10 +187,10 @@ React, Next.js, Vue, Vite, SvelteKit, React Native, Expo, Remix, Qwik, Nuxt, Ast
 `dist`, `build`, `out`, `.output`, `.next`, `.nuxt`, `.svelte-kit`, `.svelte`, `.remix`, `.qwik`, `.astro`, `.angular`, `.angular/cache`, `.solid`, `.docusaurus`, `.nitro`
 
 ### Build tool caches
-`.cache`, `.parcel-cache`, `.webpack`, `.rollup.cache`, `.vite`, `.swc`, `.rpt2_cache`, `.eslintcache`, `.stylelintcache`, `.sass-cache`, `.babel-cache`, `.cache-loader`
+`.cache`, `.parcel-cache`, `.webpack`, `.rollup.cache`, `.vite`, `.vite/deps`, `.swc`, `.rpt2_cache`, `.eslintcache`, `.stylelintcache`, `.sass-cache`, `.babel-cache`, `.cache-loader`
 
 ### Package manager caches
-`node_modules/.cache`, `.npm`, `.pnpm-store`, `.pnpm-debug.log`, `.yarn/cache`, `.yarn/unplugged`, `.yarn/install-state.gz`
+`node_modules/.cache`, `.npm`, `.pnpm-store`, `.pnpm-debug.log`, `.yarn/cache`, `.yarn/unplugged`, `.yarn/install-state.gz`, `.yarn/build-state.yml`
 
 ### Monorepo & build tools
 `.turbo`, `.nx/cache`, `.lerna`, `.rush`, `.yalc`
@@ -190,8 +207,12 @@ React, Next.js, Vue, Vite, SvelteKit, React Native, Expo, Remix, Qwik, Nuxt, Ast
 ### File patterns
 `*.log`, `*.tgz`, `*.tar.gz`, `tsconfig.tsbuildinfo`, `coverage`, `.nyc_output`, `storybook-static`, `.storybook-out`
 
+The `*` patterns match files in the project root only.
+
 ### Temporary files
-`.tmp`, `tmp`, `temp`, `lib`, `es`, `cjs`, `umd`, `jspm_packages`, `.typings`
+`.tmp`, `tmp`, `temp`, `jspm_packages`, `.typings`
+
+`lib`, `es`, `cjs` and `umd` are **not** removed by default, because they often hold hand-written source. If your project builds into them, add them to `customPaths`.
 
 </details>
 
@@ -201,7 +222,7 @@ React, Next.js, Vue, Vite, SvelteKit, React Native, Expo, Remix, Qwik, Nuxt, Ast
 
 By default, output goes to the console only. To save a log file for troubleshooting, set `logfile: true` in `torchrc.json` or pass `--logfile=true`.
 
-The log is written to `torch-it.log` in your project root. Add it to `.gitignore`:
+The log is written to `torch-it.log` in your project root, and is left in place by the `*.log` cleanup while logging is on. Add it to `.gitignore`:
 
 ```gitignore
 torch-it.log
@@ -211,7 +232,7 @@ torch-it.log
 
 ## Troubleshooting
 
-**Docker issues:** Run `docker compose ps` from the project root to check if Compose is working. For rebuilds, confirm `docker compose` is on your PATH. Check that the Docker daemon is running with `docker info`.
+**Docker issues:** Docker mode needs a Compose file in the project root. Run `docker compose ps` there to check if Compose is working. For rebuilds, confirm `docker compose` is on your PATH. Check that the Docker daemon is running with `docker info`.
 
 **Missing `package.json`:** Run `npm init -y` to initialise a project, or make sure you're in the right directory.
 

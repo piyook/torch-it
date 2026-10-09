@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - dev
   workflow_dispatch:
   pull_request:
     types: [opened, edited, synchronize, reopened, ready_for_review]
@@ -71,11 +72,9 @@ jobs:
           node-version: "24"
           cache: "npm"
       - run: npm ci
-      - run: npm audit --omit=dev
+      - run: npm audit --audit-level=high
 
-  unit_tests:
-    if: always()
-    needs: [lint, format, audit]
+  fallow:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -84,4 +83,22 @@ jobs:
           node-version: "24"
           cache: "npm"
       - run: npm ci
+      - run: npm run fallow
+
+  unit_tests:
+    if: always()
+    needs: [lint, format, audit, fallow]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: "npm"
+      - run: npm ci
       - run: npm run test
+      - run: npm run build

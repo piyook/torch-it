@@ -43,10 +43,8 @@ export const BUILD_DIRS = [
   "ios/build",
   ".expo",
   ".expo-shared",
-  "lib",
-  "es",
-  "cjs",
-  "umd",
+  // "lib", "es", "cjs" and "umd" are left out on purpose: they are often
+  // hand-written source. Projects that build into them can list them in customPaths.
   ".remix",
   ".qwik",
   ".nitro",

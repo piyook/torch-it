@@ -4,14 +4,14 @@ import { hasCmd, run } from "./system";
 
 export type PackageManager = "npm" | "yarn" | "pnpm";
 
-export interface PackageManagerConfig {
+interface PackageManagerConfig {
   name: PackageManager;
   lockFile: string;
   installCommand: string;
   cacheCleanCommand: string;
 }
 
-const PACKAGE_MANAGERS: Record<PackageManager, PackageManagerConfig> = {
+export const PACKAGE_MANAGERS: Record<PackageManager, PackageManagerConfig> = {
   npm: {
     name: "npm",
     lockFile: "package-lock.json",
@@ -52,10 +52,9 @@ export function installWithPackageManager(pm: PackageManager): boolean {
   const isDryRun = process.env.TORCH_DRY_RUN === "1";
   const config = PACKAGE_MANAGERS[pm];
 
-  const detectionMessage =
-    pm === detectPackageManager()
-      ? `Using ${pm} (detected ${config.lockFile})...`
-      : `Using ${pm} (fallback)...`;
+  const detectionMessage = fs.existsSync(config.lockFile)
+    ? `Using ${pm} (detected ${config.lockFile})...`
+    : `Using ${pm} (fallback)...`;
 
   outputToConsole(detectionMessage, "step");
 
@@ -84,8 +83,4 @@ export function cleanPackageManagerCache(pm: PackageManager): boolean {
   }
 
   return false;
-}
-
-export function getAvailablePackageManagers(): PackageManager[] {
-  return (Object.keys(PACKAGE_MANAGERS) as PackageManager[]).filter(hasCmd);
 }
