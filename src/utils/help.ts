@@ -21,6 +21,7 @@ OPTIONS:
   --rebuild=<bool>       Enable/disable rebuild operations (default: true)
   --cacheClean=<bool>    Enable/disable the package manager cache clean (default: true)
   --only=<list>          Remove only these paths instead of the default targets
+  --allowTracked=<bool>  Also remove files tracked in git (default: false, they are kept)
   --logfile=<bool>       Enable/disable file logging (default: false)
   --customPaths=<list>   Additional paths to remove during cleanup (comma-separated)
   --protectedPaths=<list> Paths to skip during cleanup (comma-separated)

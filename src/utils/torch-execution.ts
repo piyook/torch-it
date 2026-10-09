@@ -115,6 +115,7 @@ export async function executeTorchWorkflow(
   const cleanup = cleanupBuildsAndCaches(torchRcConfig);
   torchRecord.buildAndCacheClean = cleanup.cleaned;
   torchRecord.cleanupFailures = cleanup.failed;
+  torchRecord.trackedKept = cleanup.tracked;
 
   // Detected once, after the cleanup, so both steps below use the same one
   const packageManager = detectPackageManager();

@@ -12,6 +12,10 @@ vi.mock("../../src/utils/ui", () => ({
   showInFull: vi.fn((fn: () => void) => fn()),
 }));
 
+vi.mock("../../src/utils/git", () => ({
+  listTrackedFiles: vi.fn(() => []),
+}));
+
 vi.mock("../../src/utils/system", () => ({
   hasCmd: vi.fn(),
   run: vi.fn(),
@@ -23,6 +27,7 @@ import {
   cleanupPackageManagerCaches,
 } from "../../src/utils/cleanup";
 import { run } from "../../src/utils/system";
+import { listTrackedFiles } from "../../src/utils/git";
 import { outputToConsole } from "../../src/utils/ui";
 import { DEFAULT_TORCH_RC_CONFIG } from "../../src/types";
 
@@ -60,6 +65,7 @@ describe("cleanupBuildsAndCaches", () => {
     delete process.env.TORCH_DRY_RUN;
     mockedReaddirSync.mockReturnValue([]);
     setIsLink(false);
+    vi.mocked(listTrackedFiles).mockReturnValue([]);
   });
 
   it("does not remove directories in dry-run mode", () => {
@@ -68,7 +74,7 @@ describe("cleanupBuildsAndCaches", () => {
 
     const result = cleanupBuildsAndCaches(DEFAULT_TORCH_RC_CONFIG);
 
-    expect(result).toEqual({ cleaned: true, failed: 0 });
+    expect(result).toEqual({ cleaned: true, failed: 0, tracked: 0 });
     expect(mockedRmSync).not.toHaveBeenCalled();
     expect(mockedOutputToConsole).toHaveBeenCalledWith(
       "Would remove dist",
@@ -82,6 +88,7 @@ describe("cleanupBuildsAndCaches", () => {
     expect(cleanupBuildsAndCaches(DEFAULT_TORCH_RC_CONFIG)).toEqual({
       cleaned: true,
       failed: 0,
+      tracked: 0,
     });
     expect(removedTargets()).toEqual(["node_modules", "dist"]);
 
@@ -91,6 +98,7 @@ describe("cleanupBuildsAndCaches", () => {
     expect(cleanupBuildsAndCaches(DEFAULT_TORCH_RC_CONFIG)).toEqual({
       cleaned: false,
       failed: 0,
+      tracked: 0,
     });
     expect(mockedRmSync).not.toHaveBeenCalled();
   });
@@ -153,7 +161,7 @@ describe("cleanupBuildsAndCaches", () => {
     });
 
     expect(mockedRmSync).not.toHaveBeenCalled();
-    expect(result).toEqual({ cleaned: false, failed: 0 });
+    expect(result).toEqual({ cleaned: false, failed: 0, tracked: 0 });
     expect(mockedOutputToConsole).toHaveBeenCalledWith(
       expect.stringContaining("Skipping dist: it is a link"),
       "warn",
@@ -168,7 +176,7 @@ describe("cleanupBuildsAndCaches", () => {
 
     const result = cleanupBuildsAndCaches(DEFAULT_TORCH_RC_CONFIG);
 
-    expect(result).toEqual({ cleaned: true, failed: 1 });
+    expect(result).toEqual({ cleaned: true, failed: 1, tracked: 0 });
     expect(removedTargets()).toEqual(["node_modules", "dist"]);
     expect(mockedOutputToConsole).not.toHaveBeenCalledWith(
       expect.stringContaining("already clean"),
@@ -188,8 +196,66 @@ describe("cleanupBuildsAndCaches", () => {
       protectedPaths: ["dist/keep.json"],
     });
 
-    expect(result).toEqual({ cleaned: true, failed: 1 });
+    expect(result).toEqual({ cleaned: true, failed: 1, tracked: 0 });
     expect(removedTargets()).toEqual(["node_modules"]);
+  });
+
+  describe("with files tracked in git inside the targets", () => {
+    beforeEach(() => {
+      setExistingPaths(
+        "build",
+        "build/app.js",
+        "build/cache.tmp",
+        "dist",
+        "dist/.gitkeep",
+        "dist/bundle.js",
+        "node_modules",
+      );
+      mockedReaddirSync.mockImplementation(((target: string) => {
+        if (target === "build") return ["app.js", "cache.tmp"];
+        if (target === "dist") return [".gitkeep", "bundle.js"];
+        return [];
+      }) as any);
+      vi.mocked(listTrackedFiles).mockReturnValue([
+        "build/app.js",
+        "dist/.gitkeep",
+        "dist/deleted-from-disk.js",
+      ]);
+    });
+
+    it("keeps them and removes what is around them", () => {
+      const result = cleanupBuildsAndCaches(DEFAULT_TORCH_RC_CONFIG);
+
+      expect(removedTargets()).toEqual([
+        "node_modules",
+        "dist/bundle.js",
+        "build/cache.tmp",
+      ]);
+      expect(result).toEqual({ cleaned: true, failed: 0, tracked: 2 });
+      expect(mockedOutputToConsole).toHaveBeenCalledWith(
+        "Kept 2 file(s) tracked in git, under: build, dist. Pass --allowTracked=true to remove them too.",
+        "warn",
+      );
+    });
+
+    it("asks git only about the targets of this run", () => {
+      cleanupBuildsAndCaches({ ...DEFAULT_TORCH_RC_CONFIG, only: ["build\\"] });
+
+      expect(vi.mocked(listTrackedFiles)).toHaveBeenCalledWith([
+        ":(literal)build",
+      ]);
+    });
+
+    it("removes them too when allowTracked is on, without asking git", () => {
+      const result = cleanupBuildsAndCaches({
+        ...DEFAULT_TORCH_RC_CONFIG,
+        allowTracked: true,
+      });
+
+      expect(removedTargets()).toEqual(["node_modules", "dist", "build"]);
+      expect(result.tracked).toBe(0);
+      expect(vi.mocked(listTrackedFiles)).not.toHaveBeenCalled();
+    });
   });
 
   it("removes nothing but the paths in 'only' when it is set", () => {

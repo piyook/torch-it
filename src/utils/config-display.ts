@@ -1,10 +1,14 @@
 import * as fs from "fs";
 import { outputToConsole } from "./ui";
-import { getCustomPaths, getProtectedPaths } from "./torchrc";
-import { getCleanupPlan } from "./targets";
+import { getCustomPaths } from "./torchrc";
+import {
+  describeTrackedLocations,
+  getCleanupPlan,
+  getRunProtection,
+} from "./targets";
 import type { CleanupPlan } from "./targets";
 import {
-  containsProtectedPath,
+  createProtectionIndex,
   existingPaths,
   filterProtectedTargets,
   matchRootFiles,
@@ -70,11 +74,9 @@ function showTargetList(
 ): void {
   if (targets.length === 0) return;
   info(title);
-  const keptPaths = existingPaths(protectedPaths);
+  const keptOnDisk = createProtectionIndex(existingPaths(protectedPaths));
   targets.forEach((target) => {
-    const note = containsProtectedPath(target, keptPaths)
-      ? " - protected contents kept"
-      : "";
+    const note = keptOnDisk.holds(target) ? " - protected contents kept" : "";
     info(`    ${target} ${describePath(target)}${note}`);
   });
 }
@@ -145,12 +147,20 @@ export function renderTorchConfigDisplay(
   info(`  Docker Mode: ${config.dockerMode}`);
   info(`  Docker Volumes: ${config.dockerVolumes}`);
   info(`  Cache Clean: ${config.cacheClean}`);
+  info(`  Allow Tracked: ${config.allowTracked}`);
   info(`  Rebuild: ${config.rebuild}`);
   info(`  Logfile: ${config.logfile}`);
 
   showPackageManagers();
   showDockerFiles();
-  showDeletionTargets(getCleanupPlan(config), getProtectedPaths(config));
+  const plan = getCleanupPlan(config);
+  const protection = getRunProtection(config, plan);
+  showDeletionTargets(plan, protection.protectedPaths);
+  if (protection.trackedFiles.length > 0) {
+    info(
+      `  Kept: ${protection.trackedFiles.length} file(s) tracked in git, under: ${describeTrackedLocations(protection.trackedFiles)}`,
+    );
+  }
 
   if (protectedPaths.length > 0) {
     showPathList("\nPROTECTED PATHS (will NOT be deleted):", protectedPaths);

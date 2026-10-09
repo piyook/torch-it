@@ -22,8 +22,36 @@ const normalisePath = (target: string): string =>
 const comparisonKey = (target: string): string =>
   normalisePath(target).toLowerCase();
 
-const isSameOrInside = (target: string, parent: string): boolean =>
-  parent === "" || target === parent || target.startsWith(parent + "/");
+// "a/b/c" -> ["a", "a/b"]
+const ancestorsOf = (key: string): string[] => {
+  const parts = key.split("/");
+  return parts.slice(0, -1).map((_, i) => parts.slice(0, i + 1).join("/"));
+};
+
+// Answers both protection questions in time that does not grow with the
+// number of protected paths, which matters once tracked files are included.
+export function createProtectionIndex(protectedPaths: string[]) {
+  const keys = new Set(protectedPaths.map(comparisonKey));
+  const ancestors = new Set<string>();
+  for (const key of keys) {
+    if (key !== "") ancestors.add("");
+    ancestorsOf(key).forEach((ancestor) => ancestors.add(ancestor));
+  }
+
+  return {
+    // True when the target is a protected path or sits inside one
+    covers: (target: string): boolean => {
+      const key = comparisonKey(target);
+      return (
+        keys.has("") ||
+        keys.has(key) ||
+        ancestorsOf(key).some((ancestor) => keys.has(ancestor))
+      );
+    },
+    // True when a protected path sits inside the target
+    holds: (target: string): boolean => ancestors.has(comparisonKey(target)),
+  };
+}
 
 // False for the project root itself and for anything outside it
 export function isInsideProject(target: string): boolean {
@@ -41,10 +69,7 @@ export function isPathProtected(
   target: string,
   protectedPaths: string[],
 ): boolean {
-  const targetKey = comparisonKey(target);
-  return protectedPaths.some((protectedPath) =>
-    isSameOrInside(targetKey, comparisonKey(protectedPath)),
-  );
+  return createProtectionIndex(protectedPaths).covers(target);
 }
 
 // True when a protected path sits inside the target
@@ -52,20 +77,15 @@ export function containsProtectedPath(
   target: string,
   protectedPaths: string[],
 ): boolean {
-  const targetKey = comparisonKey(target);
-  return protectedPaths.some((protectedPath) => {
-    const protectedKey = comparisonKey(protectedPath);
-    return (
-      protectedKey !== targetKey && isSameOrInside(protectedKey, targetKey)
-    );
-  });
+  return createProtectionIndex(protectedPaths).holds(target);
 }
 
 export function filterProtectedTargets(
   targets: string[],
   protectedPaths: string[],
 ): string[] {
-  return targets.filter((target) => !isPathProtected(target, protectedPaths));
+  const protection = createProtectionIndex(protectedPaths);
+  return targets.filter((target) => !protection.covers(target));
 }
 
 // A protected path that is not on disk has nothing to keep
@@ -91,7 +111,8 @@ export function matchRootFiles(pattern: string): string[] {
 
 export function createCleanupTargetHandler(options: CleanupOptions) {
   const { isDryRun, protectedPaths } = options;
-  const existingProtectedPaths = existingPaths(protectedPaths);
+  const protection = createProtectionIndex(protectedPaths);
+  const keptOnDisk = createProtectionIndex(existingPaths(protectedPaths));
   let removedCount = 0;
   let failedCount = 0;
 
@@ -131,7 +152,7 @@ export function createCleanupTargetHandler(options: CleanupOptions) {
   };
 
   const cleanupTarget = (target: string): void => {
-    if (!fs.existsSync(target) || isPathProtected(target, protectedPaths)) {
+    if (!fs.existsSync(target) || protection.covers(target)) {
       return;
     }
 
@@ -140,7 +161,7 @@ export function createCleanupTargetHandler(options: CleanupOptions) {
       return;
     }
 
-    if (!containsProtectedPath(target, existingProtectedPaths)) {
+    if (!keptOnDisk.holds(target)) {
       removeTarget(target);
       return;
     }

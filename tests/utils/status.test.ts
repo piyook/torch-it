@@ -90,6 +90,14 @@ describe("statusMessage", () => {
     );
   });
 
+  it("says how many tracked files were kept, without calling it a failure", () => {
+    const lines = linesFor({ ...successRecord, trackedKept: 3 });
+
+    expect(lines).toContain("⚠️ 3 file(s) tracked in git were kept");
+    expect(lines[0]).toBe("🔥 PROJECT SUCCESSFULLY TORCHED! 🔥");
+    expect(torchFailed({ ...successRecord, trackedKept: 3 })).toBe(false);
+  });
+
   it("does not report an already clean project as a failure", () => {
     const lines = linesFor({ ...successRecord, buildAndCacheClean: false });
 

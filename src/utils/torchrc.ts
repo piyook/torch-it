@@ -21,6 +21,7 @@ const BOOLEAN_KEYS = [
   "logfile",
   "rebuild",
   "cacheClean",
+  "allowTracked",
 ] as const;
 const DELETION_KEYS: readonly string[] = [
   "customPaths",
