@@ -4,12 +4,12 @@
 
 ## What it does and does not do
 
-- Works on the current directory only. Run it from the project root. It does not descend into workspace packages: targets are paths relative to where it is run.
+- Works on one directory: the current one, or the one given with `--cwd=<dir>`. That should be the project root. It does not descend into workspace packages: targets are paths relative to that directory.
 - The directory must hold a `package.json`, `yarn.lock`, `pnpm-lock.yaml` or `npm-shrinkwrap.json`. Otherwise it exits `1` and changes nothing.
 - Deletes with a recursive force remove. Nothing goes to a recycle bin. Files that are not in git are gone for good.
 - `node_modules` is always a target, so a run with `--rebuild=false` leaves the project without dependencies until they are installed again.
-- Clears the package manager's cache, and that cache is machine-wide, not per project (`npm cache clean --force`, `yarn cache clean` or `pnpm store prune`). Later installs in every project on the machine download again.
-- With Docker mode on, `docker compose down --rmi all --volumes` removes the project's containers, images and volumes. Data held in those volumes, such as a development database, is lost.
+- Clears the package manager's cache, and that cache is machine-wide, not per project (`npm cache clean --force`, `yarn cache clean` or `pnpm store prune`). Later installs in every project on the machine download again. Pass `--cacheClean=false` to leave it alone; a broken install is rarely the cache's fault.
+- With Docker mode on, `docker compose down --rmi all` removes the project's containers and images. Volumes are kept unless `dockerVolumes` is also on, in which case data held in them, such as a development database, is lost.
 - It never touches git, never edits source files and never changes `package.json` or lockfiles itself (the install step may update a lockfile, as any install can).
 
 ## The safe way to run it (agents and scripts)
@@ -47,8 +47,12 @@ A list given on the command line is ADDED to the list of the same name in `torch
 | `--version`, `-v` | `torch-it v<version>` |
 | `--protectedPaths=a,b` | Paths to keep |
 | `--customPaths=a,b` | Extra paths to delete |
+| `--only=a,b` | Remove only these paths. The default targets, the root file patterns and `customPaths` are skipped. Protection still applies |
+| `--cwd=<dir>`, `--cwd <dir>` | Run in `<dir>` as if it were the current directory, including reading its `torchrc.json`. A directory that cannot be entered is exit `1` |
 | `--rebuild=true\|false` | `false` skips the dependency install and the Docker rebuild. Cleanup still runs. Default `true` |
 | `--dockerMode=true\|false` | Turn the Docker Compose steps on or off. Default `false` |
+| `--dockerVolumes=true\|false` | In Docker mode, also remove volumes. Default `false` |
+| `--cacheClean=true\|false` | `false` skips the package manager cache clean. Default `true` |
 | `--logfile=true\|false` | Write the run's output to `torch-it.log` in the project root. Default `false` |
 
 - A boolean option with no value means `true`: `--logfile` is `--logfile=true`.
@@ -70,16 +74,17 @@ Optional file in the project root. For the boolean options the command line over
 }
 ```
 
-- Keys: `customPaths`, `protectedPaths` (arrays of strings), `dockerMode`, `rebuild`, `logfile` (booleans). `customDirs` and `customFiles` are accepted and mean the same as `customPaths`.
+- Keys: `customPaths`, `protectedPaths`, `only` (arrays of strings), `dockerMode`, `dockerVolumes`, `rebuild`, `cacheClean`, `logfile` (booleans). `customDirs` and `customFiles` are accepted and mean the same as `customPaths`.
 - Invalid JSON, an unknown key or a value of the wrong type stops the run with exit `1`. Nothing is deleted.
 - Paths are relative to the project root. `dist`, `dist/`, `./dist`, `dist\` and `apps/../dist` are the same path, and so is its absolute form.
-- A `customPaths` entry that is the project root or lies outside it (`.`, `..`, `../other`) is refused: exit `1`, nothing deleted. torch-it only deletes inside the directory it is run in.
+- A `customPaths` or `only` entry that is the project root or lies outside it (`.`, `..`, `../other`) is refused: exit `1`, nothing deleted. torch-it only deletes inside the directory it is run in.
 
 ## What gets deleted
 
 - **Default targets**: about 70 fixed paths, deleted where they exist. They include `node_modules`, `dist`, `build`, `out`, `coverage`, `tmp`, `temp`, `.next`, `.nuxt`, `.vite`, `.cache`, `.turbo`, `android/build` and `ios/Pods`. `README.md` has the full list, and `torch-it --config` shows the ones present in this project.
 - **Root file patterns**: `*.log`, `*.tgz`, `*.tar.gz` and `tsconfig.tsbuildinfo`. The `*` patterns match files in the project root only, never directories and never files in subdirectories.
 - **Custom paths**: whatever `customPaths` lists.
+- **With `only` set**: just the paths it lists. The three groups above are skipped.
 - **Not default targets**: `lib`, `es`, `cjs` and `umd`. They often hold source.
 
 `build`, `out`, `tmp` and `temp` are default targets. In some projects those names hold source or data: check the `--test` output and protect them if so.
@@ -100,13 +105,13 @@ Optional file in the project root. For the boolean options the command line over
 
 1. Docker teardown, if Docker mode is on.
 2. Default targets, then root file patterns, then custom paths.
-3. Package manager cache clean.
+3. Package manager cache clean, unless `cacheClean` is `false`.
 4. Dependency install, unless `rebuild` is `false`.
 5. Docker rebuild and start, if the teardown ran and `rebuild` is not `false`.
 
 **Package manager**: chosen once per run, after the cleanup: the first of pnpm, yarn, npm whose lockfile (`pnpm-lock.yaml`, `yarn.lock`, `package-lock.json`) is present and whose command is on the PATH. With no lockfile: the first of npm, yarn, pnpm that is installed. It runs `<pm> install`, never `npm ci`.
 
-**Docker mode** runs only when a Compose file is in the project root: `compose.yaml`, `compose.yml`, `docker-compose.yaml` or `docker-compose.yml`. A `Dockerfile` alone is not enough. It uses the `docker compose` plugin: `down --rmi all --volumes`, then `build --pull --no-cache`, then `up -d`. If Docker mode is on and Docker is not installed or the daemon is not running, the Docker steps do not run, the rest of the run continues, and the exit code is `2`. A dry run in Docker mode still runs the read-only `docker info` and `docker compose ps`.
+**Docker mode** runs only when a Compose file is in the project root: `compose.yaml`, `compose.yml`, `docker-compose.yaml` or `docker-compose.yml`. A `Dockerfile` alone is not enough. It uses the `docker compose` plugin: `down --rmi all` (with `--volumes` added only when `dockerVolumes` is on), then `build --pull --no-cache`, then `up -d`. If Docker mode is on and Docker is not installed or the daemon is not running, the Docker steps do not run, the rest of the run continues, and the exit code is `2`. A dry run in Docker mode still runs the read-only `docker info` and `docker compose ps`.
 
 ## Output
 
@@ -156,6 +161,24 @@ Clean and reinstall without a prompt:
 torch-it --yes
 ```
 
+Delete and reinstall dependencies and touch nothing else. This is the smallest fix for a broken install and the one to try first:
+
+```bash
+torch-it --yes --only=node_modules --cacheClean=false
+```
+
+Clear some build output and nothing else:
+
+```bash
+torch-it --yes --only=dist,.next --rebuild=false
+```
+
+A project that is not in the current directory:
+
+```bash
+torch-it --cwd=apps/web --test
+```
+
 Clean only, no reinstall and no Docker rebuild:
 
 ```bash
@@ -180,7 +203,8 @@ Without a global install: `npx torch-it --test`.
 ## Do not
 
 - Do not run `torch-it --yes` before the user has seen the `--test` output for the same options.
-- Do not turn on Docker mode unless the user asked for it: the volumes it removes can hold data that exists nowhere else.
-- Do not run it in a directory that is not the project root. From a subdirectory it works on that subdirectory.
+- Do not turn on Docker mode unless the user asked for it, and never add `--dockerVolumes=true` on your own: volumes can hold data that exists nowhere else.
+- Do not run a full torch when a narrower one would do. Start with `--only=node_modules --cacheClean=false`.
+- Do not run it in a directory that is not the project root. From a subdirectory it works on that subdirectory. Use `--cwd` when the shell is somewhere else.
 - Do not assume `build`, `out`, `tmp` or `temp` are disposable. Check whether they are tracked in git first (`git ls-files build`).
-- Do not reach for it when a plain reinstall would do and the user is on a slow or metered connection: the cache clean makes every later install download again.
+- Do not leave the cache clean on when the user is on a slow or metered connection: it makes every later install download again.

@@ -1,7 +1,11 @@
 import { configureOutput, printBanner, outputToConsole } from "./utils/ui";
 import { clearLog, setLoggerEnabled } from "./utils/logger";
 import { getTorchRcConfig } from "./utils/torchrc";
-import { parseCliArgs, handleSpecialFlags } from "./utils/cli";
+import {
+  applyWorkingDirectory,
+  parseCliArgs,
+  handleSpecialFlags,
+} from "./utils/cli";
 import {
   ensureRunCanBeConfirmed,
   executeTorchWorkflow,
@@ -14,6 +18,7 @@ import { EXIT } from "./constants/constants";
 const cliArgs = process.argv.slice(2);
 const parsedArgs = parseCliArgs(cliArgs);
 configureOutput({ plain: parsedArgs.isPlain, quiet: parsedArgs.isQuiet });
+applyWorkingDirectory(parsedArgs);
 
 // Handle special flags that exit early
 handleSpecialFlags(parsedArgs);

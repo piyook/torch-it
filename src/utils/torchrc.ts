@@ -13,12 +13,20 @@ const ARRAY_KEYS = [
   "customDirs",
   "customFiles",
   "protectedPaths",
+  "only",
 ] as const;
-const BOOLEAN_KEYS = ["dockerMode", "logfile", "rebuild"] as const;
+const BOOLEAN_KEYS = [
+  "dockerMode",
+  "dockerVolumes",
+  "logfile",
+  "rebuild",
+  "cacheClean",
+] as const;
 const DELETION_KEYS: readonly string[] = [
   "customPaths",
   "customDirs",
   "customFiles",
+  "only",
 ];
 
 type ArrayKey = (typeof ARRAY_KEYS)[number];

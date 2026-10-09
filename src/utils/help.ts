@@ -15,8 +15,12 @@ OPTIONS:
   --yes, -y              Skip the confirmation prompt (required when there is no terminal, e.g. CI)
   --quiet, -q            Print only warnings, errors and the final summary
   --plain                No colour, emoji, banner or boxes (automatic when output is not a terminal)
+  --cwd=<dir>            Run in <dir> instead of the current directory
   --dockerMode=<bool>    Enable/disable Docker Compose operations (default: false)
+  --dockerVolumes=<bool> Also remove Docker volumes in Docker mode (default: false)
   --rebuild=<bool>       Enable/disable rebuild operations (default: true)
+  --cacheClean=<bool>    Enable/disable the package manager cache clean (default: true)
+  --only=<list>          Remove only these paths instead of the default targets
   --logfile=<bool>       Enable/disable file logging (default: false)
   --customPaths=<list>   Additional paths to remove during cleanup (comma-separated)
   --protectedPaths=<list> Paths to skip during cleanup (comma-separated)
@@ -34,6 +38,8 @@ EXAMPLES:
   torch-it --logfile=true              # Enable file logging
   torch-it --customPaths=temp,logs    # Clean additional paths
   torch-it --protectedPaths=dist      # Keep a path that would otherwise be removed
+  torch-it --only=node_modules --cacheClean=false  # Just reinstall dependencies
+  torch-it --cwd=apps/web --test      # Preview another directory
 
 OUTPUT:
   Warnings and errors go to stderr, everything else to stdout.
@@ -54,7 +60,9 @@ CONFIGURATION:
     "customPaths": ["apps/web/.next", "coverage-final.json"],
     "protectedPaths": ["important-data/"],
     "dockerMode": false,
+    "dockerVolumes": false,
     "rebuild": true,
+    "cacheClean": true,
     "logfile": false
   }
 

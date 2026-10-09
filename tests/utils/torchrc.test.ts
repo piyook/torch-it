@@ -107,6 +107,26 @@ describe("resolveTorchRcConfig from CLI arguments", () => {
     },
   );
 
+  it("reads the scope options", () => {
+    setTorchRc({ cacheClean: false, only: ["node_modules"] });
+
+    const { config, problems } = resolveTorchRcConfig([
+      "--dockerVolumes=true",
+      "--only=dist",
+    ]);
+
+    expect(problems).toEqual([]);
+    expect(config.cacheClean).toBe(false);
+    expect(config.dockerVolumes).toBe(true);
+    expect(config.only).toEqual(["node_modules", "dist"]);
+  });
+
+  it("refuses an 'only' path that is the project root or outside it", () => {
+    expect(resolveTorchRcConfig(["--only=.."]).problems).toEqual([
+      '--only entry ".." is the project root or outside it',
+    ]);
+  });
+
   it("allows protectedPaths to name anything", () => {
     expect(resolveTorchRcConfig(["--protectedPaths=..,."]).problems).toEqual(
       [],

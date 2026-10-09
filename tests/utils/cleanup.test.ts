@@ -192,6 +192,32 @@ describe("cleanupBuildsAndCaches", () => {
     expect(removedTargets()).toEqual(["node_modules"]);
   });
 
+  it("removes nothing but the paths in 'only' when it is set", () => {
+    const files = ["debug.log"];
+    setExistingPaths("dist", "node_modules", "extra", ...files);
+    mockedReaddirSync.mockReturnValue(files.map(rootFile) as any);
+
+    cleanupBuildsAndCaches({
+      ...DEFAULT_TORCH_RC_CONFIG,
+      only: ["node_modules", "missing"],
+      customPaths: ["extra"],
+    });
+
+    expect(removedTargets()).toEqual(["node_modules"]);
+  });
+
+  it("still honours protected paths in 'only' mode", () => {
+    setExistingPaths("dist", "node_modules");
+
+    cleanupBuildsAndCaches({
+      ...DEFAULT_TORCH_RC_CONFIG,
+      only: ["node_modules", "dist"],
+      protectedPaths: ["dist"],
+    });
+
+    expect(removedTargets()).toEqual(["node_modules"]);
+  });
+
   it("only removes root files that really match a glob pattern", () => {
     const files = ["debug.log", "catalog.json", "blog.md", "pkg-1.0.0.tgz"];
     setExistingPaths(...files);

@@ -9,6 +9,8 @@ export type TorchRecord = {
   rebuild?: boolean;
   dryRun?: boolean;
   cleanupFailures?: number;
+  cacheClean?: boolean;
+  dockerVolumes?: boolean;
 };
 
 export type TorchRcConfig = {
@@ -16,9 +18,12 @@ export type TorchRcConfig = {
   customDirs?: string[];
   customFiles?: string[];
   protectedPaths?: string[];
+  only?: string[];
   dockerMode?: boolean;
+  dockerVolumes?: boolean;
   logfile?: boolean;
   rebuild?: boolean;
+  cacheClean?: boolean;
 };
 
 export const DEFAULT_TORCH_RC_CONFIG: Required<TorchRcConfig> = {
@@ -26,7 +31,10 @@ export const DEFAULT_TORCH_RC_CONFIG: Required<TorchRcConfig> = {
   customDirs: [],
   customFiles: [],
   protectedPaths: [],
+  only: [],
   dockerMode: false,
+  dockerVolumes: false,
   logfile: false,
   rebuild: true,
+  cacheClean: true,
 };

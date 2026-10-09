@@ -67,6 +67,29 @@ describe("statusMessage", () => {
     expect(lines.join(" ")).not.toContain("❌");
   });
 
+  it("says when the cache was left alone on purpose", () => {
+    const lines = linesFor({
+      ...successRecord,
+      packageManagerClean: false,
+      cacheClean: false,
+    });
+
+    expect(lines).toContain(
+      "🔥 Package manager cache left alone (cacheClean disabled)",
+    );
+    expect(lines[0]).toBe("🔥 PROJECT SUCCESSFULLY TORCHED! 🔥");
+  });
+
+  it("names volumes only when they were removed", () => {
+    expect(linesFor(dockerSuccessRecord)).toContain(
+      "🐳 Docker containers and images removed",
+    );
+    mockedPrintBox.mockClear();
+    expect(linesFor({ ...dockerSuccessRecord, dockerVolumes: true })).toContain(
+      "🐳 Docker containers, images and volumes removed",
+    );
+  });
+
   it("does not report an already clean project as a failure", () => {
     const lines = linesFor({ ...successRecord, buildAndCacheClean: false });
 
@@ -122,7 +145,7 @@ describe("statusMessage", () => {
         "🔥 All build artifacts & caches would be removed",
         "🔥 Package manager cache would be cleaned",
         "📦 Dependencies would be installed",
-        "🐳 Docker containers, images and volumes would be removed",
+        "🐳 Docker containers and images would be removed",
         "🐳 Docker containers would be rebuilt",
         "🔥 Services would be started",
       ]),

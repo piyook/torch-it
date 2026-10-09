@@ -16,6 +16,8 @@ interface CliFlags {
 }
 
 export interface CliArgs extends CliFlags {
+  // Directory to run in, from --cwd. Undefined when the flag was not given.
+  cwd?: string;
   filteredArgs: string[];
 }
 
@@ -45,10 +47,16 @@ export function parseCliArgs(args: string[]): CliArgs {
     filteredArgs: [],
   };
 
-  for (const arg of args) {
+  for (let index = 0; index < args.length; index++) {
+    const arg = args[index];
     const flag = FLAGS[arg];
     if (flag) {
       parsed[flag] = true;
+    } else if (arg === "--cwd") {
+      // "--cwd dir": the directory is the next argument
+      parsed.cwd = args[++index] ?? "";
+    } else if (arg.startsWith("--cwd=")) {
+      parsed.cwd = arg.slice("--cwd=".length);
     } else {
       // Everything else is a config override, checked by the config parser
       parsed.filteredArgs.push(arg);
@@ -56,6 +64,23 @@ export function parseCliArgs(args: string[]): CliArgs {
   }
 
   return parsed;
+}
+
+// Moves to the --cwd directory before anything reads the project
+export function applyWorkingDirectory(args: CliArgs): void {
+  if (args.cwd === undefined) return;
+
+  try {
+    process.chdir(args.cwd);
+  } catch {
+    outputToConsole(
+      args.cwd === ""
+        ? "--cwd needs a directory"
+        : `--cwd: cannot use "${args.cwd}" as the working directory`,
+      "fail",
+    );
+    process.exit(EXIT.ERROR);
+  }
 }
 
 export function handleSpecialFlags(args: CliArgs): void {

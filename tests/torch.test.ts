@@ -90,6 +90,9 @@ describe("torch main functionality", () => {
       protectedPaths: [],
       dockerMode: true,
       logfile: false,
+      cacheClean: true,
+      dockerVolumes: false,
+      only: [],
       rebuild: true,
     });
 
@@ -117,6 +120,9 @@ describe("torch main functionality", () => {
       protectedPaths: [],
       dockerMode: true,
       logfile: false,
+      cacheClean: true,
+      dockerVolumes: false,
+      only: [],
       rebuild: false,
     });
 
@@ -149,6 +155,9 @@ describe("torch main functionality", () => {
       protectedPaths: [],
       dockerMode: true,
       logfile: false,
+      cacheClean: true,
+      dockerVolumes: false,
+      only: [],
       rebuild: true,
     });
 
@@ -242,6 +251,9 @@ describe("torch main functionality", () => {
       protectedPaths: [],
       dockerMode: true,
       logfile: false,
+      cacheClean: true,
+      dockerVolumes: false,
+      only: [],
       rebuild: true,
     });
 
@@ -346,6 +358,9 @@ describe("torch main functionality", () => {
       protectedPaths: [],
       dockerMode: true,
       logfile: false,
+      cacheClean: true,
+      dockerVolumes: false,
+      only: [],
       rebuild: true,
     });
 

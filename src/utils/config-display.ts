@@ -1,12 +1,8 @@
 import * as fs from "fs";
 import { outputToConsole } from "./ui";
-import {
-  BUILD_DIRS,
-  CACHE_DIRS,
-  CUSTOM_DIRS,
-  FILE_PATTERNS,
-} from "../constants/config";
 import { getCustomPaths, getProtectedPaths } from "./torchrc";
+import { getCleanupPlan } from "./targets";
+import type { CleanupPlan } from "./targets";
 import {
   containsProtectedPath,
   existingPaths,
@@ -84,32 +80,25 @@ function showTargetList(
 }
 
 function showDeletionTargets(
-  customPaths: string[],
+  plan: CleanupPlan,
   protectedPaths: string[],
 ): void {
   info("\nFILES/DIRECTORIES THAT WILL BE DELETED:");
 
-  const defaultTargets = filterProtectedTargets(
-    [
-      ...new Set([
-        ...BUILD_DIRS,
-        ...CACHE_DIRS,
-        ...CUSTOM_DIRS,
-        ...FILE_PATTERNS,
-      ]),
-    ],
-    protectedPaths,
-  );
+  const existingUnprotected = (targets: string[]) =>
+    filterProtectedTargets(targets, protectedPaths).filter((target) =>
+      fs.existsSync(target),
+    );
 
   // Separate regular targets from glob patterns
-  const regularTargets = defaultTargets.filter(
-    (target) => !target.includes("*") && fs.existsSync(target),
+  const regularTargets = existingUnprotected([
+    ...plan.defaultTargets,
+    ...plan.filePatterns.filter((pattern) => !pattern.includes("*")),
+  ]);
+  const globPatterns = plan.filePatterns.filter((pattern) =>
+    pattern.includes("*"),
   );
-  const globPatterns = defaultTargets.filter((target) => target.includes("*"));
-  const customTargets = filterProtectedTargets(
-    customPaths,
-    protectedPaths,
-  ).filter((target) => fs.existsSync(target));
+  const customTargets = existingUnprotected(plan.customTargets);
 
   showTargetList("  Default targets:", regularTargets, protectedPaths);
 
@@ -118,7 +107,13 @@ function showDeletionTargets(
     globPatterns.forEach((pattern) => showGlobPattern(pattern, protectedPaths));
   }
 
-  showTargetList("  Custom targets:", customTargets, protectedPaths);
+  showTargetList(
+    plan.onlyMode
+      ? "  Only these (nothing else is removed):"
+      : "  Custom targets:",
+    customTargets,
+    protectedPaths,
+  );
 
   if (
     regularTargets.length === 0 &&
@@ -148,12 +143,14 @@ export function renderTorchConfigDisplay(
 
   info("\nBASIC SETTINGS:");
   info(`  Docker Mode: ${config.dockerMode}`);
+  info(`  Docker Volumes: ${config.dockerVolumes}`);
+  info(`  Cache Clean: ${config.cacheClean}`);
   info(`  Rebuild: ${config.rebuild}`);
   info(`  Logfile: ${config.logfile}`);
 
   showPackageManagers();
   showDockerFiles();
-  showDeletionTargets(customPaths, getProtectedPaths(config));
+  showDeletionTargets(getCleanupPlan(config), getProtectedPaths(config));
 
   if (protectedPaths.length > 0) {
     showPathList("\nPROTECTED PATHS (will NOT be deleted):", protectedPaths);
@@ -163,6 +160,10 @@ export function renderTorchConfigDisplay(
 
   if (customPaths.length > 0) {
     showPathList("\nCUSTOM PATHS:", customPaths);
+  }
+
+  if (config.only.length > 0) {
+    showPathList("\nONLY (replaces the default targets):", config.only);
   }
 
   info("\n" + "=".repeat(60));
