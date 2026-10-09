@@ -4,6 +4,8 @@ import { showHelp } from "./help";
 import { showConfig } from "./config-display";
 import { getTorchRcConfig } from "./torchrc";
 import { EXIT } from "../constants/constants";
+import { exitWithError, isJsonMode, printJson } from "./json-output";
+import { getVersion } from "./version";
 
 interface CliFlags {
   isHelp: boolean;
@@ -13,6 +15,7 @@ interface CliFlags {
   assumeYes: boolean;
   isQuiet: boolean;
   isPlain: boolean;
+  isJson: boolean;
 }
 
 export interface CliArgs extends CliFlags {
@@ -33,6 +36,7 @@ const FLAGS: Record<string, keyof CliFlags> = {
   "--quiet": "isQuiet",
   "-q": "isQuiet",
   "--plain": "isPlain",
+  "--json": "isJson",
 };
 
 export function parseCliArgs(args: string[]): CliArgs {
@@ -44,6 +48,7 @@ export function parseCliArgs(args: string[]): CliArgs {
     assumeYes: false,
     isQuiet: false,
     isPlain: false,
+    isJson: false,
     filteredArgs: [],
   };
 
@@ -79,7 +84,7 @@ export function applyWorkingDirectory(args: CliArgs): void {
         : `--cwd: cannot use "${args.cwd}" as the working directory`,
       "fail",
     );
-    process.exit(EXIT.ERROR);
+    exitWithError();
   }
 }
 
@@ -92,14 +97,22 @@ export function handleSpecialFlags(args: CliArgs): void {
 
   if (args.isVersion) {
     setLoggerEnabled(false);
-    const packageJson = require("../../package.json");
-    outputToConsole(`torch-it v${packageJson.version}`, "info");
+    if (isJsonMode()) {
+      printJson({ version: getVersion() });
+    } else {
+      outputToConsole(`torch-it v${getVersion()}`, "info");
+    }
     process.exit(EXIT.OK);
   }
 
   if (args.isConfig) {
     setLoggerEnabled(false);
-    showConfig(getTorchRcConfig(args.filteredArgs));
+    const config = getTorchRcConfig(args.filteredArgs);
+    if (isJsonMode()) {
+      printJson({ version: getVersion(), cwd: process.cwd(), config });
+    } else {
+      showConfig(config);
+    }
     process.exit(EXIT.OK);
   }
 

@@ -83,6 +83,7 @@ describe("torch main functionality", () => {
       cleaned: true,
       failed: 0,
       tracked: 0,
+      paths: { removed: [], failed: [], tracked: [] },
     });
   });
 
@@ -106,6 +107,7 @@ describe("torch main functionality", () => {
       cleaned: true,
       failed: 0,
       tracked: 0,
+      paths: { removed: [], failed: [], tracked: [] },
     });
     mockedCleanupPackageManagerCaches.mockReturnValue(true);
     mockedInstallDependencies.mockReturnValue(true);
@@ -141,6 +143,7 @@ describe("torch main functionality", () => {
       cleaned: true,
       failed: 0,
       tracked: 0,
+      paths: { removed: [], failed: [], tracked: [] },
     });
     mockedCleanupPackageManagerCaches.mockReturnValue(true);
 
@@ -181,6 +184,7 @@ describe("torch main functionality", () => {
       cleaned: true,
       failed: 0,
       tracked: 0,
+      paths: { removed: [], failed: [], tracked: [] },
     });
     mockedCleanupPackageManagerCaches.mockReturnValue(true);
     mockedInstallDependencies.mockReturnValue(true);
@@ -282,6 +286,7 @@ describe("torch main functionality", () => {
       cleaned: true,
       failed: 0,
       tracked: 0,
+      paths: { removed: [], failed: [], tracked: [] },
     });
     mockedCleanupPackageManagerCaches.mockReturnValue(true);
     mockedInstallDependencies.mockReturnValue(true);
@@ -294,7 +299,7 @@ describe("torch main functionality", () => {
     expect(process.env.TORCH_DRY_RUN).toBe("1");
     expect(mockedOutputToConsole).toHaveBeenCalledWith(
       "Running in --test dry-run mode (no files or services will be changed)",
-      "warn",
+      "info",
     );
   });
 

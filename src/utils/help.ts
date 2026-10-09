@@ -15,6 +15,7 @@ OPTIONS:
   --yes, -y              Skip the confirmation prompt (required when there is no terminal, e.g. CI)
   --quiet, -q            Print only warnings, errors and the final summary
   --plain                No colour, emoji, banner or boxes (automatic when output is not a terminal)
+  --json                 Print one JSON document describing the run (needs --yes or --test)
   --cwd=<dir>            Run in <dir> instead of the current directory
   --dockerMode=<bool>    Enable/disable Docker Compose operations (default: false)
   --dockerVolumes=<bool> Also remove Docker volumes in Docker mode (default: false)
@@ -41,6 +42,7 @@ EXAMPLES:
   torch-it --protectedPaths=dist      # Keep a path that would otherwise be removed
   torch-it --only=node_modules --cacheClean=false  # Just reinstall dependencies
   torch-it --cwd=apps/web --test      # Preview another directory
+  torch-it --test --json              # The plan, as JSON
 
 OUTPUT:
   Warnings and errors go to stderr, everything else to stdout.

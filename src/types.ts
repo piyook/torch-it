@@ -12,6 +12,15 @@ export type TorchRecord = {
   cacheClean?: boolean;
   dockerVolumes?: boolean;
   trackedKept?: number;
+  packageManager?: string | null;
+  // The paths behind the counts above, for the --json result
+  paths?: CleanupPaths;
+};
+
+export type CleanupPaths = {
+  removed: string[];
+  failed: string[];
+  tracked: string[];
 };
 
 export type TorchRcConfig = {

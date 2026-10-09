@@ -33,8 +33,8 @@ const removeFilePatterns = (
 };
 
 const reportCleanup = (handler: CleanupHandler, isDryRun: boolean) => {
-  const removedCount = handler.removedCount();
-  const failedCount = handler.failedCount();
+  const removedCount = handler.removedPaths().length;
+  const failedCount = handler.failedPaths().length;
 
   if (failedCount > 0) {
     outputToConsole(
@@ -113,7 +113,15 @@ const cleanupBuildsAndCaches = (torchRcConfig: Required<TorchRcConfig>) => {
     );
   }
 
-  return { ...reportCleanup(handler, isDryRun), tracked: trackedFiles.length };
+  return {
+    ...reportCleanup(handler, isDryRun),
+    tracked: trackedFiles.length,
+    paths: {
+      removed: handler.removedPaths(),
+      failed: handler.failedPaths(),
+      tracked: trackedFiles,
+    },
+  };
 };
 
 // Only the package manager this project uses - the others are not ours to clear

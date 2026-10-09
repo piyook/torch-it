@@ -1,5 +1,6 @@
 import { COLOURS, ICONS, setColourEnabled } from "../constants/constants";
 import { logger } from "./logger";
+import { isJsonMode, recordProblem } from "./json-output";
 
 // Plain output is for anything that is not a person at a terminal: no colour,
 // emoji, banner or boxes, and a fixed prefix per line that a script can match.
@@ -14,7 +15,8 @@ const PLAIN_PREFIXES: Record<string, string> = {
 };
 
 function configureOutput(options: { plain?: boolean; quiet?: boolean }): void {
-  plain = options.plain === true || process.stdout.isTTY !== true;
+  plain =
+    options.plain === true || isJsonMode() || process.stdout.isTTY !== true;
   quiet = options.quiet === true;
   setColourEnabled(!plain && !process.env.NO_COLOR);
 }
@@ -63,11 +65,12 @@ const formatPlain = (msg: string, type: string): string =>
 function outputToConsole(msg: string, type: string) {
   const message = plain ? formatPlain(msg, type) : formatDecorated(msg, type);
   logger(message);
+  recordProblem(type, stripDecoration(msg).replace(/^\n+/, ""));
 
   // Problems go to stderr, and are never silenced
   if (type === "warn" || type === "fail") {
     console.error(message);
-  } else if (!quiet) {
+  } else if (!quiet && !isJsonMode()) {
     console.log(message);
   }
 }
@@ -114,6 +117,11 @@ function printBox(
   lines: string[],
   color: (text: string) => string = COLOURS.GREEN,
 ): void {
+  if (isJsonMode()) {
+    lines.forEach((line) => logger(stripDecoration(line)));
+    return;
+  }
+
   if (plain) {
     lines
       .map(stripDecoration)
