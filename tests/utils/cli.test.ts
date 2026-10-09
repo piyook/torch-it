@@ -9,6 +9,7 @@ const noFlags = {
   assumeYes: false,
   isQuiet: false,
   isPlain: false,
+  isJson: false,
   filteredArgs: [],
 };
 
@@ -29,6 +30,7 @@ describe("parseCliArgs", () => {
     ["--quiet", "isQuiet"],
     ["-q", "isQuiet"],
     ["--plain", "isPlain"],
+    ["--json", "isJson"],
   ])("reads %s", (arg, flag) => {
     expect(parseCliArgs([arg])).toEqual({ ...noFlags, [flag]: true });
   });

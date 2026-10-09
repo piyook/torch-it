@@ -161,6 +161,52 @@ At a terminal, `torch-it` uses colour, emoji and boxes. When its output is piped
 - `--quiet` prints only warnings, errors, the paths a dry run would remove and the final summary, and hides the progress output of the install and Docker commands. The plan you are asked to confirm is still shown.
 - Set the `NO_COLOR` environment variable to drop colour and keep everything else.
 
+### JSON output
+
+`--json` prints a single JSON document on stdout and nothing else there. It never prompts, so it needs `--yes` or `--test`.
+
+```bash
+torch-it --test --json    # the plan
+torch-it --yes --json     # the result
+```
+
+```json
+{
+  "version": "3.0.0",
+  "ok": true,
+  "exitCode": 0,
+  "dryRun": true,
+  "changed": false,
+  "cwd": "/home/me/my-app",
+  "packageManager": "npm",
+  "removed": ["node_modules", "dist/bundle.js", "debug.log"],
+  "failed": [],
+  "keptTracked": ["dist/.gitkeep"],
+  "steps": {
+    "dockerTeardown": "skipped",
+    "cleanup": "ok",
+    "cacheClean": "ok",
+    "install": "ok",
+    "dockerRebuild": "skipped",
+    "dockerStart": "skipped"
+  },
+  "warnings": ["Kept 1 file(s) tracked in git, under: dist. Pass --allowTracked=true to remove them too."],
+  "errors": []
+}
+```
+
+| Field | Meaning |
+|-------|---------|
+| `ok`, `exitCode` | The outcome, matching the process exit code |
+| `dryRun`, `changed` | Whether this was `--test`, and whether anything on disk may have changed |
+| `removed` | Paths removed, or in a dry run the paths that would be |
+| `failed` | Paths that could not be removed |
+| `keptTracked` | Files kept because git tracks them |
+| `steps` | `ok`, `failed` or `skipped` for each step, plus `unavailable` for Docker. In a dry run `ok` means the step would run |
+| `warnings`, `errors` | The warning and error lines of the run, as text |
+
+When nothing was changed because of a bad option, a missing project or no way to confirm, the document is shorter: `ok: false`, `exitCode: 1`, `changed: false` and the `errors`. Warnings and errors are still written to stderr as they happen, and the output of the install and Docker commands goes to stderr too. `--version --json` and `--config --json` print the version and the resolved configuration.
+
 ### Exit codes
 
 | Code | Meaning |
@@ -237,6 +283,7 @@ List options take comma-separated paths. A JSON array works too, but most shells
 | `--yes`, `-y` | Skip confirmation prompt |
 | `--quiet`, `-q` | Print only warnings, errors and the final summary |
 | `--plain` | No colour, emoji, banner or boxes. Automatic when output is not a terminal |
+| `--json` | Print one JSON document describing the run. Needs `--yes` or `--test` |
 | `--cwd=dir` | Run in `dir` instead of the current directory. `--cwd dir` also works |
 | `--customPaths=a,b` | Extra paths to delete |
 | `--only=a,b` | Remove only these paths instead of the default targets |
@@ -301,11 +348,11 @@ The `*` patterns match files in the project root only.
 The safe sequence is the same for an agent as for a person in a hurry:
 
 ```bash
-torch-it --test    # preview: nothing is deleted, nothing is asked
-torch-it --yes     # run it, once the list has been checked
+torch-it --test --json    # preview: nothing is deleted, nothing is asked
+torch-it --yes --json     # run it, once the list has been checked
 ```
 
-Captured output is plain text with a fixed prefix per line (see [Output](#output)), and `--quiet` cuts it down to warnings, errors and the summary. Scripts should rely on the exit code first.
+`--json` gives the plan or the result as one JSON document (see [JSON output](#json-output)). Without it, captured output is plain text with a fixed prefix per line (see [Output](#output)), and `--quiet` cuts it down to warnings, errors and the summary.
 
 ---
 

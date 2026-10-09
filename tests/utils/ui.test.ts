@@ -15,6 +15,7 @@ import {
   showInFull,
 } from "../../src/utils/ui";
 import { logger } from "../../src/utils/logger";
+import { setJsonMode } from "../../src/utils/json-output";
 
 const ESC = String.fromCharCode(27);
 
@@ -145,6 +146,29 @@ describe("ui output", () => {
       outputToConsole("dist removed", "success");
 
       expect(vi.mocked(logger)).toHaveBeenCalledWith("ok: dist removed");
+    });
+  });
+
+  describe("with --json", () => {
+    beforeEach(() => {
+      setTerminal(true);
+      setJsonMode(true);
+      configureOutput({});
+    });
+
+    afterEach(() => {
+      setJsonMode(false);
+    });
+
+    it("prints nothing on stdout and keeps problems on stderr as plain text", () => {
+      outputToConsole("dist removed", "success");
+      outputToConsole("Scanning...", "step");
+      printBanner();
+      printBox(["PROJECT SUCCESSFULLY TORCHED!"]);
+      outputToConsole("Failed to remove dist", "fail");
+
+      expect(stdout).not.toHaveBeenCalled();
+      expect(stderrLines()).toEqual(["error: Failed to remove dist"]);
     });
   });
 

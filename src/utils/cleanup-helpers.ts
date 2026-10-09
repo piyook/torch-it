@@ -113,14 +113,14 @@ export function createCleanupTargetHandler(options: CleanupOptions) {
   const { isDryRun, protectedPaths } = options;
   const protection = createProtectionIndex(protectedPaths);
   const keptOnDisk = createProtectionIndex(existingPaths(protectedPaths));
-  let removedCount = 0;
-  let failedCount = 0;
+  const removedPaths: string[] = [];
+  const failedPaths: string[] = [];
 
   const removeTarget = (target: string): void => {
     if (isDryRun) {
       // The plan is what a dry run is for, so --quiet does not hide it
       showInFull(() => outputToConsole(`Would remove ${target}`, "info"));
-      removedCount++;
+      removedPaths.push(target);
       return;
     }
 
@@ -128,10 +128,10 @@ export function createCleanupTargetHandler(options: CleanupOptions) {
     try {
       fs.rmSync(target, { recursive: true, force: true });
       outputToConsole(`${target} removed`, "success");
-      removedCount++;
+      removedPaths.push(target);
     } catch {
       outputToConsole(`Failed to remove ${target}`, "fail");
-      failedCount++;
+      failedPaths.push(target);
     }
   };
 
@@ -170,13 +170,13 @@ export function createCleanupTargetHandler(options: CleanupOptions) {
       removeAroundProtectedPaths(target);
     } catch {
       outputToConsole(`Failed to read ${target}`, "fail");
-      failedCount++;
+      failedPaths.push(target);
     }
   };
 
   return {
-    removedCount: () => removedCount,
-    failedCount: () => failedCount,
+    removedPaths: () => removedPaths,
+    failedPaths: () => failedPaths,
     cleanupTarget,
   };
 }

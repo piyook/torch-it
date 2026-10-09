@@ -74,7 +74,7 @@ describe("cleanupBuildsAndCaches", () => {
 
     const result = cleanupBuildsAndCaches(DEFAULT_TORCH_RC_CONFIG);
 
-    expect(result).toEqual({ cleaned: true, failed: 0, tracked: 0 });
+    expect(result).toMatchObject({ cleaned: true, failed: 0, tracked: 0 });
     expect(mockedRmSync).not.toHaveBeenCalled();
     expect(mockedOutputToConsole).toHaveBeenCalledWith(
       "Would remove dist",
@@ -85,7 +85,7 @@ describe("cleanupBuildsAndCaches", () => {
   it("removes default targets and reports a clean project", () => {
     setExistingPaths("dist", "node_modules");
 
-    expect(cleanupBuildsAndCaches(DEFAULT_TORCH_RC_CONFIG)).toEqual({
+    expect(cleanupBuildsAndCaches(DEFAULT_TORCH_RC_CONFIG)).toMatchObject({
       cleaned: true,
       failed: 0,
       tracked: 0,
@@ -95,7 +95,7 @@ describe("cleanupBuildsAndCaches", () => {
     mockedRmSync.mockClear();
     setExistingPaths();
 
-    expect(cleanupBuildsAndCaches(DEFAULT_TORCH_RC_CONFIG)).toEqual({
+    expect(cleanupBuildsAndCaches(DEFAULT_TORCH_RC_CONFIG)).toMatchObject({
       cleaned: false,
       failed: 0,
       tracked: 0,
@@ -161,7 +161,7 @@ describe("cleanupBuildsAndCaches", () => {
     });
 
     expect(mockedRmSync).not.toHaveBeenCalled();
-    expect(result).toEqual({ cleaned: false, failed: 0, tracked: 0 });
+    expect(result).toMatchObject({ cleaned: false, failed: 0, tracked: 0 });
     expect(mockedOutputToConsole).toHaveBeenCalledWith(
       expect.stringContaining("Skipping dist: it is a link"),
       "warn",
@@ -176,8 +176,10 @@ describe("cleanupBuildsAndCaches", () => {
 
     const result = cleanupBuildsAndCaches(DEFAULT_TORCH_RC_CONFIG);
 
-    expect(result).toEqual({ cleaned: true, failed: 1, tracked: 0 });
+    expect(result).toMatchObject({ cleaned: true, failed: 1, tracked: 0 });
     expect(removedTargets()).toEqual(["node_modules", "dist"]);
+    expect(result.paths.failed).toEqual(["node_modules"]);
+    expect(result.paths.removed).toEqual(["dist"]);
     expect(mockedOutputToConsole).not.toHaveBeenCalledWith(
       expect.stringContaining("already clean"),
       "info",
@@ -196,7 +198,7 @@ describe("cleanupBuildsAndCaches", () => {
       protectedPaths: ["dist/keep.json"],
     });
 
-    expect(result).toEqual({ cleaned: true, failed: 1, tracked: 0 });
+    expect(result).toMatchObject({ cleaned: true, failed: 1, tracked: 0 });
     expect(removedTargets()).toEqual(["node_modules"]);
   });
 
@@ -231,7 +233,12 @@ describe("cleanupBuildsAndCaches", () => {
         "dist/bundle.js",
         "build/cache.tmp",
       ]);
-      expect(result).toEqual({ cleaned: true, failed: 0, tracked: 2 });
+      expect(result).toMatchObject({ cleaned: true, failed: 0, tracked: 2 });
+      expect(result.paths).toEqual({
+        removed: ["node_modules", "dist/bundle.js", "build/cache.tmp"],
+        failed: [],
+        tracked: ["build/app.js", "dist/.gitkeep"],
+      });
       expect(mockedOutputToConsole).toHaveBeenCalledWith(
         "Kept 2 file(s) tracked in git, under: build, dist. Pass --allowTracked=true to remove them too.",
         "warn",

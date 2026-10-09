@@ -9,6 +9,7 @@ import { DEFAULT_TORCH_RC_CONFIG } from "../types";
 import { statusMessage } from "./status";
 import { renderTorchConfigDisplay } from "./config-display";
 import { promptYesNo } from "./prompt";
+import { exitWithError, isJsonMode } from "./json-output";
 
 // Never delete unprompted: without a terminal to ask on, --yes is required.
 // Called before anything is written, so a refused run leaves no trace.
@@ -17,7 +18,17 @@ export function ensureRunCanBeConfirmed(options: {
 }): void {
   const needsPrompt =
     options.assumeYes !== true && process.env.TORCH_DRY_RUN !== "1";
-  if (!needsPrompt || process.stdin.isTTY === true) {
+  if (!needsPrompt) {
+    return;
+  }
+
+  // A prompt on stdout would break the one JSON document --json promises
+  if (isJsonMode()) {
+    outputToConsole("--json never prompts: add --yes or --test.", "fail");
+    exitWithError();
+  }
+
+  if (process.stdin.isTTY === true) {
     return;
   }
 
@@ -31,7 +42,7 @@ export function ensureRunCanBeConfirmed(options: {
       "info",
     );
   }
-  process.exit(EXIT.ERROR);
+  exitWithError();
 }
 
 async function confirmDestructiveRun(
@@ -116,9 +127,11 @@ export async function executeTorchWorkflow(
   torchRecord.buildAndCacheClean = cleanup.cleaned;
   torchRecord.cleanupFailures = cleanup.failed;
   torchRecord.trackedKept = cleanup.tracked;
+  torchRecord.paths = cleanup.paths;
 
   // Detected once, after the cleanup, so both steps below use the same one
   const packageManager = detectPackageManager();
+  torchRecord.packageManager = packageManager;
 
   // --- Package Manager Cache Cleanup ---
   if (torchRcConfig.cacheClean !== false) {

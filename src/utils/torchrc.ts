@@ -4,7 +4,7 @@ import type { TorchRcConfig } from "../types";
 import { DEFAULT_TORCH_RC_CONFIG } from "../types";
 import { isInsideProject } from "./cleanup-helpers";
 import { LOG_FILE } from "./logger";
-import { EXIT } from "../constants/constants";
+import { exitWithError } from "./json-output";
 
 const TORCH_RC_PATH = "torchrc.json";
 
@@ -218,7 +218,7 @@ export const getTorchRcConfig = (
       "Nothing was changed. Fix the above or run 'torch-it --help'.",
       "info",
     );
-    process.exit(EXIT.ERROR);
+    exitWithError();
   }
 
   return config;

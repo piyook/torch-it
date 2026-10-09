@@ -14,13 +14,13 @@
 
 ## The safe way to run it (agents and scripts)
 
-1. Preview with `--test`: every path that would be removed and every command that would run is printed. Nothing is deleted and nothing is asked.
+1. Preview with `--test --json`: `removed` lists every path that would be removed, `keptTracked` what git protects, and `steps` what would run. Nothing is deleted and nothing is asked.
 2. Show the user the list and get their agreement. Point out anything that is not obviously build output.
 3. Run the same command with `--yes` in place of `--test`.
 
 ```bash
-torch-it --test            # dry run, exit 0
-torch-it --yes --quiet     # the real run, short output
+torch-it --test --json     # the plan as JSON, exit 0
+torch-it --yes --json      # the real run, result as JSON
 ```
 
 Without `--yes`, torch-it shows the plan and asks "Continue? Type Yes or No (y/n)" on a terminal. With no terminal (an agent's shell, CI, a pipe) it deletes nothing, writes nothing, prints an error and exits `1`. Do not pipe `y` into the prompt: use `--yes`. A Git Bash window can count as no terminal; there `winpty torch-it` gives it one.
@@ -40,6 +40,7 @@ A list given on the command line is ADDED to the list of the same name in `torch
 |---|---|
 | `--test` | Dry run. Lists what would be removed and run, changes nothing, never prompts |
 | `--yes`, `-y` | Run without the confirmation prompt |
+| `--json` | Print one JSON document describing the run and nothing else on stdout. Needs `--yes` or `--test` |
 | `--quiet`, `-q` | Print only warnings, errors and the final summary. Hides the progress output of the install and Docker commands |
 | `--plain` | Plain output at a terminal. Already the case when output is captured |
 | `--config` | Print the resolved settings and the targets that exist, then exit. Includes any overrides passed with it |
@@ -124,9 +125,51 @@ Optional file in the project root. For the boolean options the command line over
 
 **Docker mode** runs only when a Compose file is in the project root: `compose.yaml`, `compose.yml`, `docker-compose.yaml` or `docker-compose.yml`. A `Dockerfile` alone is not enough. It uses the `docker compose` plugin: `down --rmi all` (with `--volumes` added only when `dockerVolumes` is on), then `build --pull --no-cache`, then `up -d`. If Docker mode is on and Docker is not installed or the daemon is not running, the Docker steps do not run, the rest of the run continues, and the exit code is `2`. A dry run in Docker mode still runs the read-only `docker info` and `docker compose ps`.
 
-## Output
+## JSON output
 
-When stdout is not a terminal, which is always the case for an agent or a script, output is plain: no colour codes, emoji, banner or boxes. Each line has a fixed prefix:
+`--json` is the form to use from an agent or a script. stdout carries exactly one JSON document; nothing else is written there.
+
+```json
+{
+  "version": "3.0.0",
+  "ok": true,
+  "exitCode": 0,
+  "dryRun": true,
+  "changed": false,
+  "cwd": "/home/me/my-app",
+  "packageManager": "npm",
+  "removed": ["node_modules", "dist/bundle.js", "debug.log"],
+  "failed": [],
+  "keptTracked": ["dist/.gitkeep"],
+  "steps": {
+    "dockerTeardown": "skipped",
+    "cleanup": "ok",
+    "cacheClean": "ok",
+    "install": "ok",
+    "dockerRebuild": "skipped",
+    "dockerStart": "skipped"
+  },
+  "warnings": ["Kept 1 file(s) tracked in git, under: dist. Pass --allowTracked=true to remove them too."],
+  "errors": []
+}
+```
+
+- `ok` and `exitCode` match the process exit code. `changed` is `false` when nothing on disk can have changed: a dry run, or exit `1`.
+- `removed`: paths removed. In a dry run, the paths that would be removed. Paths are relative to `cwd` and use `/`.
+- `failed`: paths that could not be removed. Not empty means exit `2`.
+- `keptTracked`: files kept because git tracks them.
+- `steps`: one of `ok`, `failed`, `skipped` per step; `dockerTeardown` can also be `unavailable`. In a dry run `ok` means the step would run.
+- `warnings`, `errors`: the text of every warning and error line of the run.
+- `packageManager`: `npm`, `yarn`, `pnpm` or `null` when none is installed.
+- When nothing was changed because of exit `1`, the document has only `version`, `ok: false`, `exitCode: 1`, `changed: false`, `warnings` and `errors`.
+- `--json` never prompts. Without `--yes` or `--test` it is exit `1`.
+- stderr still gets the `warning:` and `error:` lines as they happen, and the output of `npm install` and `docker compose`. Read the JSON from stdout only.
+- `torch-it --version --json` prints `{"version": "..."}`. `torch-it --config --json` prints `version`, `cwd` and the resolved `config`. `--help` ignores `--json`.
+- New fields may be added in later versions. Do not fail on a field you do not know.
+
+## Text output
+
+Without `--json`, when stdout is not a terminal, which is always the case for an agent or a script, output is plain: no colour codes, emoji, banner or boxes. Each line has a fixed prefix:
 
 | Prefix | Meaning | Stream |
 |---|---|---|
@@ -156,7 +199,7 @@ When stdout is not a terminal, which is always the case for an agent or a script
 - A dry run exits `2` when it can already see the real run would fail, for example Docker mode with no Docker. Nothing was changed.
 - After exit `1` or `3` it is safe to fix the cause and run again. After exit `2` the project is partly cleaned: read the `error:` lines, fix the cause and run again, which is safe to repeat.
 - The summary box at the end starts with `PROJECT SUCCESSFULLY TORCHED`, `TORCHED WITH ERRORS`, `DRY RUN COMPLETE - NOTHING WAS CHANGED` or `DRY RUN FOUND PROBLEMS - NOTHING WAS CHANGED`.
-- There is no JSON form. Rely on the exit code first, then on the line prefixes and the phrases quoted here. With `--logfile=true` the same text is written to `torch-it.log`.
+- Prefer `--json` and its fields over matching text. Without it, rely on the exit code first, then on the line prefixes and the phrases quoted here. With `--logfile=true` the text output is also written to `torch-it.log`.
 
 ## Recipes
 

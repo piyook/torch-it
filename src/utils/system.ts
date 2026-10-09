@@ -2,10 +2,14 @@ import { execSync } from "child_process";
 import type { StdioOptions } from "child_process";
 import * as os from "os";
 import { isQuiet, outputToConsole } from "./ui";
+import { isJsonMode } from "./json-output";
 
 // With --quiet a command keeps its errors but loses its progress output
-const commandStdio = (): StdioOptions =>
-  isQuiet() ? ["inherit", "ignore", "inherit"] : "inherit";
+// and with --json it goes to stderr, so stdout stays one JSON document
+const commandStdio = (): StdioOptions => {
+  if (isQuiet()) return ["inherit", "ignore", "inherit"];
+  return isJsonMode() ? ["inherit", 2, "inherit"] : "inherit";
+};
 
 function run(cmd: string, opts: { silent?: boolean } = {}): boolean {
   try {
