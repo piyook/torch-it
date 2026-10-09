@@ -30,7 +30,7 @@ torch-it                  # clean and rebuild
 1. Removes build artifacts and cache directories (50+ targets — `node_modules`, `dist`, `.next`, `.cache`, `.vite`, etc.)
 2. Removes log files and temporary files (`*.log`, `*.tgz`, `*.tar.gz`, etc.)
 3. Removes any custom paths you define in `torchrc.json`
-4. Cleans the cache of the package manager your project uses (npm, yarn, or pnpm, picked from the lockfile). This cache is shared by every project on your machine, so later installs elsewhere will download again
+4. Cleans the cache of the package manager your project uses (npm, yarn, or pnpm, picked from the lockfile). This cache is shared by every project on your machine, so later installs elsewhere will download again. Skip it with `--cacheClean=false`
 5. Reinstalls all dependencies
 
 ### Optionally runs (Docker mode)
@@ -39,11 +39,11 @@ When `dockerMode: true` and a Compose file is present (`compose.yaml`, `compose.
 
 | Step | When | Command |
 |------|------|---------|
-| Teardown | Before cleanup | `docker compose down --rmi all --volumes` |
+| Teardown | Before cleanup | `docker compose down --rmi all` |
 | Rebuild | After dependency install | `docker compose build --pull --no-cache` |
 | Start | After successful rebuild | `docker compose up -d` |
 
-> **Warning:** The teardown removes the project's containers, images **and volumes**. Anything stored in a volume, such as a development database, is lost.
+> **Volumes are kept by default.** Set `dockerVolumes: true` to add `--volumes` to the teardown. Anything stored in a volume, such as a development database, is then lost.
 
 > **Note:** All Docker operations use `docker compose` (plugin). Ensure Docker Compose plugin is installed and on your PATH. A project with only a `Dockerfile` and no Compose file is left alone.
 
@@ -107,6 +107,26 @@ torch-it --test
 
 Lists every path that would be removed and every command that would run. Nothing is deleted and nothing is asked.
 
+### Do less
+
+A full torch is not always what you need. These narrow it down:
+
+```bash
+torch-it --only=node_modules --cacheClean=false   # just delete and reinstall dependencies
+torch-it --only=dist,.next --rebuild=false        # just clear some build output
+torch-it --cacheClean=false                       # full clean, but leave the shared cache alone
+```
+
+`--only` replaces the built-in targets, the file patterns and your `customPaths` with the paths you list. Protected paths still apply.
+
+### Run in another directory
+
+```bash
+torch-it --cwd=apps/web --test
+```
+
+`torch-it` behaves exactly as if you had changed into that directory first, including reading its `torchrc.json`.
+
 ### Show current configuration
 
 ```bash
@@ -153,7 +173,9 @@ Create a `torchrc.json` file in your project root to customise behaviour. Everyt
   "customPaths": ["apps/web/.next", "services/api/tmp", "coverage-final.json"],
   "protectedPaths": ["important-data/", "config/production.json"],
   "dockerMode": false,
+  "dockerVolumes": false,
   "rebuild": true,
+  "cacheClean": true,
   "logfile": false
 }
 ```
@@ -163,7 +185,10 @@ Create a `torchrc.json` file in your project root to customise behaviour. Everyt
 | `customPaths` | `string[]` | `[]` | Extra directories or files to delete during cleanup |
 | `protectedPaths` | `string[]` | `[]` | Paths to skip — preserved even if they match built-in targets. A protected path inside a target (e.g. `dist/keep.json`) is kept while the rest of the target is removed |
 | `dockerMode` | `boolean` | `false` | Enable Docker teardown, rebuild, and launch |
+| `dockerVolumes` | `boolean` | `false` | In Docker mode, also remove the project's volumes. Off by default because volumes can hold data that exists nowhere else |
 | `rebuild` | `boolean` | `true` | Set to `false` to skip dependency reinstall and Docker rebuild (cleanup still runs) |
+| `cacheClean` | `boolean` | `true` | Set to `false` to leave the package manager's machine-wide cache alone |
+| `only` | `string[]` | `[]` | When set, remove only these paths. The built-in targets, file patterns and `customPaths` are skipped |
 | `logfile` | `boolean` | `false` | Write runtime output to `torch-it.log` in the project root |
 
 `customDirs` and `customFiles` are also accepted and behave exactly like `customPaths`.
@@ -200,9 +225,13 @@ List options take comma-separated paths. A JSON array works too, but most shells
 | `--yes`, `-y` | Skip confirmation prompt |
 | `--quiet`, `-q` | Print only warnings, errors and the final summary |
 | `--plain` | No colour, emoji, banner or boxes. Automatic when output is not a terminal |
+| `--cwd=dir` | Run in `dir` instead of the current directory. `--cwd dir` also works |
 | `--customPaths=a,b` | Extra paths to delete |
+| `--only=a,b` | Remove only these paths instead of the default targets |
 | `--protectedPaths=a,b` | Paths to preserve |
 | `--dockerMode=true\|false` | Enable/disable Docker steps |
+| `--dockerVolumes=true\|false` | Also remove Docker volumes in Docker mode |
+| `--cacheClean=true\|false` | Enable/disable the package manager cache clean |
 | `--rebuild=true\|false` | Enable/disable dependency reinstall and Docker rebuild |
 | `--logfile=true\|false` | Enable/disable log file output |
 
@@ -305,6 +334,7 @@ Version 3 closes several ways a run could delete more than intended. If you used
 | Exit code is `2` when a path can not be removed, the dependency install fails, or Docker mode is on and Docker is unavailable or a Docker step fails | Check scripts that assumed `0` |
 | A `customPaths` entry that is the project root or outside it is refused | Run `torch-it` from the directory you want cleaned |
 | Protected paths are matched without regard to case | Nothing |
+| Docker mode no longer removes volumes unless `dockerVolumes` is `true` | Set it if you relied on volumes being wiped |
 | Docker mode needs a Compose file; a `Dockerfile` alone is skipped. `compose.yaml` and `compose.yml` are now recognised | Nothing |
 | `*.log`, `*.tgz` and `*.tar.gz` match those extensions only. Before, `*.log` also caught root files such as `catalog.json` | Nothing |
 | List flags take comma-separated paths: `--customPaths=temp,logs` | The quoted JSON form still works |

@@ -91,6 +91,16 @@ describe("dockerCleanup", () => {
     const result = dockerCleanup({ ...baseTorchRc, dockerMode: true });
 
     expect(result).toBe("OK");
+    expect(mockedRun).toHaveBeenCalledWith("docker compose down --rmi all");
+  });
+
+  it("removes volumes only when dockerVolumes is on", () => {
+    mockedExistsSync.mockImplementation((target) => target === "compose.yaml");
+    mockedHasCmd.mockReturnValue(true);
+    mockedRun.mockReturnValue(true);
+
+    dockerCleanup({ ...baseTorchRc, dockerMode: true, dockerVolumes: true });
+
     expect(mockedRun).toHaveBeenCalledWith(
       "docker compose down --rmi all --volumes",
     );

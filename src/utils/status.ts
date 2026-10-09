@@ -56,6 +56,15 @@ const buildAndCacheLines = (torchRecord: TorchRecord): string[] => {
   ];
 };
 
+const cacheLine = (torchRecord: TorchRecord): string => {
+  if (torchRecord.cacheClean === false) {
+    return `${ICONS.CLEAN} Package manager cache left alone (cacheClean disabled)`;
+  }
+  return torchRecord.packageManagerClean
+    ? `${ICONS.CLEAN} Package manager cache ${done(torchRecord, "cleaned")}`
+    : `${ICONS.WARN} Package manager cache not cleaned`;
+};
+
 const dependencyLine = (torchRecord: TorchRecord): string => {
   if (torchRecord.rebuild === false) {
     return `${ICONS.BOX} Dependency install skipped (rebuild disabled)`;
@@ -76,7 +85,7 @@ const dockerLines = (torchRecord: TorchRecord): string[] => {
     return [`${ICONS.FAIL} Failed to remove Docker containers`];
   }
 
-  const removed = `${ICONS.DOCKER} Docker containers, images and volumes ${done(torchRecord, "removed")}`;
+  const removed = `${ICONS.DOCKER} Docker containers${torchRecord.dockerVolumes ? ", images and volumes" : " and images"} ${done(torchRecord, "removed")}`;
   if (torchRecord.rebuild === false) {
     return [
       removed,
@@ -107,9 +116,7 @@ const titleLine = (torchRecord: TorchRecord, failed: boolean): string => {
 const statusMessage = (torchRecord: TorchRecord) => {
   const failed = torchFailed(torchRecord);
 
-  const packageManagerCache = torchRecord.packageManagerClean
-    ? `${ICONS.CLEAN} Package manager cache ${done(torchRecord, "cleaned")}`
-    : `${ICONS.WARN} Package manager cache not cleaned`;
+  const packageManagerCache = cacheLine(torchRecord);
 
   printBox(
     [

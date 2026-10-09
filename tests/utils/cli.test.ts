@@ -33,6 +33,22 @@ describe("parseCliArgs", () => {
     expect(parseCliArgs([arg])).toEqual({ ...noFlags, [flag]: true });
   });
 
+  it.each([
+    [["--cwd=apps/web", "--test"], "apps/web"],
+    [["--cwd", "apps/web", "--test"], "apps/web"],
+    [["--test", "--cwd"], ""],
+  ])("reads the working directory from %j", (args, cwd) => {
+    const parsed = parseCliArgs(args);
+
+    expect(parsed.cwd).toBe(cwd);
+    expect(parsed.isDryRun).toBe(true);
+    expect(parsed.filteredArgs).toEqual([]);
+  });
+
+  it("leaves cwd undefined when --cwd is not given", () => {
+    expect(parseCliArgs(["--test"]).cwd).toBeUndefined();
+  });
+
   it("passes everything else on for the config parser to check", () => {
     const parsed = parseCliArgs([
       "--yes",

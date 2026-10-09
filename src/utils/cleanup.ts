@@ -1,50 +1,25 @@
 import { outputToConsole } from "./ui";
-import {
-  BUILD_DIRS,
-  CACHE_DIRS,
-  CUSTOM_DIRS,
-  FILE_PATTERNS,
-} from "../constants/config";
 import { cleanPackageManagerCache } from "./package-managers";
 import type { PackageManager } from "./package-managers";
 import type { TorchRcConfig } from "../types";
-import { getCustomPaths, getProtectedPaths } from "./torchrc";
+import { getProtectedPaths } from "./torchrc";
+import { getCleanupPlan } from "./targets";
 import {
   createCleanupTargetHandler,
   filterProtectedTargets,
   processGlobPattern,
 } from "./cleanup-helpers";
 
-const cleanupBuildsAndCaches = (torchRcConfig: Required<TorchRcConfig>) => {
-  const isDryRun = process.env.TORCH_DRY_RUN === "1";
-  const protectedPaths = getProtectedPaths(torchRcConfig);
+type CleanupHandler = ReturnType<typeof createCleanupTargetHandler>;
 
-  const defaultTargets = [
-    ...new Set([...BUILD_DIRS, ...CACHE_DIRS, ...CUSTOM_DIRS]),
-  ];
-  const customTargets = getCustomPaths(torchRcConfig);
-
-  // Filter out protected paths
-  const filteredDefaultTargets = filterProtectedTargets(
-    defaultTargets,
-    protectedPaths,
-  );
-  const filteredCustomTargets = filterProtectedTargets(
-    customTargets,
-    protectedPaths,
-  );
-
-  const handler = createCleanupTargetHandler({ isDryRun, protectedPaths });
-
-  outputToConsole(
-    "Scanning for build artifacts and cache directories...",
-    "step",
-  );
-  filteredDefaultTargets.forEach(handler.cleanupTarget);
+const removeFilePatterns = (
+  filePatterns: string[],
+  handler: CleanupHandler,
+): void => {
+  if (filePatterns.length === 0) return;
 
   outputToConsole("Scanning for log files and temporary files...", "step");
-
-  for (const pattern of FILE_PATTERNS) {
+  for (const pattern of filePatterns) {
     if (pattern.includes("*")) {
       processGlobPattern(pattern, handler);
     } else {
@@ -52,26 +27,12 @@ const cleanupBuildsAndCaches = (torchRcConfig: Required<TorchRcConfig>) => {
       handler.cleanupTarget(pattern);
     }
   }
+};
 
-  if (filteredCustomTargets.length > 0) {
-    outputToConsole(
-      "Deleting user defined custom directories and files",
-      "step",
-    );
-    filteredCustomTargets.forEach(handler.cleanupTarget);
-  }
-
-  // Report protected paths
-  const totalProtected =
-    defaultTargets.length -
-    filteredDefaultTargets.length +
-    (customTargets.length - filteredCustomTargets.length);
-  if (totalProtected > 0) {
-    outputToConsole(`Skipped ${totalProtected} protected path(s)`, "info");
-  }
-
+const reportCleanup = (handler: CleanupHandler, isDryRun: boolean) => {
   const removedCount = handler.removedCount();
   const failedCount = handler.failedCount();
+
   if (failedCount > 0) {
     outputToConsole(
       `${failedCount} path(s) could not be removed - close anything using them and run again`,
@@ -91,6 +52,55 @@ const cleanupBuildsAndCaches = (torchRcConfig: Required<TorchRcConfig>) => {
     );
   }
   return { cleaned: removedCount > 0, failed: failedCount };
+};
+
+const cleanupBuildsAndCaches = (torchRcConfig: Required<TorchRcConfig>) => {
+  const isDryRun = process.env.TORCH_DRY_RUN === "1";
+  const protectedPaths = getProtectedPaths(torchRcConfig);
+  const plan = getCleanupPlan(torchRcConfig);
+
+  // Filter out protected paths
+  const defaultTargets = filterProtectedTargets(
+    plan.defaultTargets,
+    protectedPaths,
+  );
+  const customTargets = filterProtectedTargets(
+    plan.customTargets,
+    protectedPaths,
+  );
+
+  const handler = createCleanupTargetHandler({ isDryRun, protectedPaths });
+
+  if (!plan.onlyMode) {
+    outputToConsole(
+      "Scanning for build artifacts and cache directories...",
+      "step",
+    );
+    defaultTargets.forEach(handler.cleanupTarget);
+  }
+
+  removeFilePatterns(plan.filePatterns, handler);
+
+  if (customTargets.length > 0) {
+    outputToConsole(
+      plan.onlyMode
+        ? "Removing only the paths listed in 'only'"
+        : "Deleting user defined custom directories and files",
+      "step",
+    );
+    customTargets.forEach(handler.cleanupTarget);
+  }
+
+  // Report protected paths
+  const totalProtected =
+    plan.defaultTargets.length -
+    defaultTargets.length +
+    (plan.customTargets.length - customTargets.length);
+  if (totalProtected > 0) {
+    outputToConsole(`Skipped ${totalProtected} protected path(s)`, "info");
+  }
+
+  return reportCleanup(handler, isDryRun);
 };
 
 // Only the package manager this project uses - the others are not ours to clear

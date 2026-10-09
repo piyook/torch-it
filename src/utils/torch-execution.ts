@@ -102,6 +102,8 @@ export async function executeTorchWorkflow(
     logfile: torchRcConfig.logfile,
     rebuild: torchRcConfig.rebuild,
     dryRun: isDryRun,
+    cacheClean: torchRcConfig.cacheClean,
+    dockerVolumes: torchRcConfig.dockerVolumes,
   };
 
   // --- Docker Cleanup ---
@@ -118,8 +120,16 @@ export async function executeTorchWorkflow(
   const packageManager = detectPackageManager();
 
   // --- Package Manager Cache Cleanup ---
-  outputToConsole("Cleaning package manager caches...", "step");
-  torchRecord.packageManagerClean = cleanupPackageManagerCaches(packageManager);
+  if (torchRcConfig.cacheClean !== false) {
+    outputToConsole("Cleaning package manager caches...", "step");
+    torchRecord.packageManagerClean =
+      cleanupPackageManagerCaches(packageManager);
+  } else {
+    outputToConsole(
+      "Cache clean disabled - leaving the package manager cache alone",
+      "info",
+    );
+  }
 
   // --- Dependency Installation ---
   if (torchRcConfig.rebuild !== false) {

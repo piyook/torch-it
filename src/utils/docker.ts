@@ -77,15 +77,15 @@ function dockerCleanup(
     return "DOCKER_FAIL";
   }
 
+  // Volumes can hold data that exists nowhere else, so they go only when asked
+  const downCommand = `docker compose down --rmi all${torchRcConfig.dockerVolumes ? " --volumes" : ""}`;
+
   if (isDryRun) {
-    outputToConsole(
-      "Dry-run: would run 'docker compose down --rmi all --volumes'",
-      "info",
-    );
+    outputToConsole(`Dry-run: would run '${downCommand}'`, "info");
     return "OK";
   }
 
-  if (run("docker compose down --rmi all --volumes")) {
+  if (run(downCommand)) {
     outputToConsole("Docker services stopped and resources cleaned", "success");
     return "OK";
   }
