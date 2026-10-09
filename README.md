@@ -30,7 +30,7 @@ torch-it                  # clean and rebuild
 1. Removes build artifacts and cache directories (50+ targets — `node_modules`, `dist`, `.next`, `.cache`, `.vite`, etc.)
 2. Removes log files and temporary files (`*.log`, `*.tgz`, `*.tar.gz`, etc.)
 3. Removes any custom paths you define in `torchrc.json`
-4. Cleans the cache of the package manager your project uses (npm, yarn, or pnpm, picked from the lockfile)
+4. Cleans the cache of the package manager your project uses (npm, yarn, or pnpm, picked from the lockfile). This cache is shared by every project on your machine, so later installs elsewhere will download again
 5. Reinstalls all dependencies
 
 ### Optionally runs (Docker mode)
@@ -42,6 +42,8 @@ When `dockerMode: true` and a Compose file is present (`compose.yaml`, `compose.
 | Teardown | Before cleanup | `docker compose down --rmi all --volumes` |
 | Rebuild | After dependency install | `docker compose build --pull --no-cache` |
 | Start | After successful rebuild | `docker compose up -d` |
+
+> **Warning:** The teardown removes the project's containers, images **and volumes**. Anything stored in a volume, such as a development database, is lost.
 
 > **Note:** All Docker operations use `docker compose` (plugin). Ensure Docker Compose plugin is installed and on your PATH. A project with only a `Dockerfile` and no Compose file is left alone.
 
@@ -101,6 +103,8 @@ torch-it --yes   # or -y
 torch-it --test
 ```
 
+Lists every path that would be removed and every command that would run. Nothing is deleted and nothing is asked.
+
 ### Show current configuration
 
 ```bash
@@ -154,6 +158,8 @@ Any config option can be overridden with a flag. Flags take precedence over `tor
 torch-it --yes --rebuild=false --customPaths=temp,logs
 torch-it --dockerMode=true --logfile=true
 ```
+
+A list flag replaces the list of the same name in `torchrc.json`; the two are not merged. `--protectedPaths=coverage` on its own drops the paths your `torchrc.json` protects, so repeat them in the flag or add the new path to the file.
 
 List options take comma-separated paths. A JSON array works too, but most shells need it quoted: `'--customPaths=["temp","logs"]'`.
 
@@ -218,6 +224,21 @@ The `*` patterns match files in the project root only.
 
 ---
 
+## Using with AI agents and scripts
+
+[`llms.txt`](llms.txt) is the reference for AI coding agents and scripts: every option, what is deleted, how protection works, exit codes and the phrases to look for in the output. It ships in the npm package next to this README.
+
+The safe sequence is the same for an agent as for a person in a hurry:
+
+```bash
+torch-it --test    # preview: nothing is deleted, nothing is asked
+torch-it --yes     # run it, once the list has been checked
+```
+
+`torch-it` has no machine-readable output. Scripts should rely on the exit code.
+
+---
+
 ## Logging
 
 By default, output goes to the console only. To save a log file for troubleshooting, set `logfile: true` in `torchrc.json` or pass `--logfile=true`.
@@ -237,6 +258,38 @@ torch-it.log
 **Missing `package.json`:** Run `npm init -y` to initialise a project, or make sure you're in the right directory.
 
 **Not sure what will be deleted?** Run `torch-it --config` to see the full list of targets, or `torch-it --test` for a dry run.
+
+---
+
+## Upgrading from 2.x
+
+Version 3 closes several ways a run could delete more than intended. If you used 2.x, these are the changes you may notice:
+
+| Change | What to do |
+|--------|------------|
+| With no terminal (CI, pipes) and no `--yes`, it stops with exit code `1` instead of deleting unprompted | Add `--yes` to automated runs |
+| An invalid `torchrc.json`, an unknown option or a value of the wrong type stops the run. Before, it was ignored | Fix the option it names |
+| `lib`, `es`, `cjs` and `umd` are no longer deleted by default | Add them to `customPaths` if your build writes to them |
+| Only the cache of the package manager your project uses is cleaned, not every one installed | Nothing |
+| Exit code is `1` when the dependency install or a Docker step fails | Check scripts that assumed `0` |
+| Docker mode needs a Compose file; a `Dockerfile` alone is skipped. `compose.yaml` and `compose.yml` are now recognised | Nothing |
+| `*.log`, `*.tgz` and `*.tar.gz` match those extensions only. Before, `*.log` also caught root files such as `catalog.json` | Nothing |
+| List flags take comma-separated paths: `--customPaths=temp,logs` | The quoted JSON form still works |
+
+---
+
+## Development
+
+```bash
+npm install
+npm run torch-it:ts -- --test   # run from source with tsx
+npm run quality                 # lint, format check, fallow and tests
+npm run build                   # bundle to dist/torch-it.js
+```
+
+- `npm run fallow` checks for unused code, duplication and over-complex functions. It runs in the pre-push hook and in CI.
+- Branches are named `feat/…`, `fix/…`, `hotfix/…`, `release/…` or `chore/…`, and commits follow [Conventional Commits](https://www.conventionalcommits.org/). Both are checked by hooks and in CI.
+- Open pull requests against `dev`. `dev` is merged into `main` for a release.
 
 ---
 
