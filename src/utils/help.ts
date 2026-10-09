@@ -9,6 +9,7 @@ USAGE:
 
 OPTIONS:
   --help, -h             Show this help message and exit
+  --llms                 Print the full reference for AI agents and scripts (llms.txt)
   --version, -v          Show version information and exit
   --config               Show current configuration and exit
   --test                 Run in dry-run mode (preview changes without executing)
@@ -68,6 +69,10 @@ CONFIGURATION:
     "cacheClean": true,
     "logfile": false
   }
+
+AI AGENTS AND SCRIPTS:
+  Run 'torch-it --llms' for the full reference, and use --test --json
+  to get the plan before --yes --json.
 
 For more information, visit: https://github.com/piyook/torch-it
 `;

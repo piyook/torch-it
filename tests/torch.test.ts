@@ -326,6 +326,27 @@ describe("torch main functionality", () => {
     }
   });
 
+  it("prints the agent reference and exits when --llms flag is used", async () => {
+    process.argv = ["node", "torch-it", "--llms", "--yes"];
+
+    const mockExit = vi.fn() as any;
+    const originalExit = process.exit;
+    process.exit = mockExit;
+    const stdout = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true);
+
+    try {
+      await import("../src/torch.js");
+
+      expect(mockExit).toHaveBeenCalledWith(0);
+      expect(String(stdout.mock.calls[0][0])).toMatch(/^# torch-it/);
+    } finally {
+      process.exit = originalExit;
+      stdout.mockRestore();
+    }
+  });
+
   it("displays version information and exits when --version flag is used", async () => {
     process.argv = ["node", "torch-it", "--version", "--yes"];
 
