@@ -4,7 +4,7 @@ vi.mock("fs", () => ({
   existsSync: vi.fn(),
   rmSync: vi.fn(),
   readdirSync: vi.fn(),
-  statSync: vi.fn(),
+  lstatSync: vi.fn(),
 }));
 
 vi.mock("../../src/utils/ui", () => ({
@@ -21,15 +21,16 @@ import {
   cleanupBuildsAndCaches,
   cleanupPackageManagerCaches,
 } from "../../src/utils/cleanup";
-import { hasCmd, run } from "../../src/utils/system";
+import { run } from "../../src/utils/system";
+import { outputToConsole } from "../../src/utils/ui";
 import { DEFAULT_TORCH_RC_CONFIG } from "../../src/types";
 
 const mockedExistsSync = vi.mocked(fs.existsSync);
 const mockedRmSync = vi.mocked(fs.rmSync);
 const mockedReaddirSync = vi.mocked(fs.readdirSync);
-const mockedStatSync = vi.mocked(fs.statSync);
-const mockedHasCmd = vi.mocked(hasCmd);
+const mockedLstatSync = vi.mocked(fs.lstatSync);
 const mockedRun = vi.mocked(run);
+const mockedOutputToConsole = vi.mocked(outputToConsole);
 
 const rootFile = (name: string) => ({ name, isFile: () => true });
 
@@ -41,33 +42,51 @@ const setExistingPaths = (...paths: string[]) => {
   );
 };
 
+const setDirectoryEntries = (directory: string, entries: string[]) => {
+  mockedReaddirSync.mockImplementation(((target: string) =>
+    target === directory ? entries : []) as any);
+};
+
+const setIsLink = (isLink: boolean) => {
+  mockedLstatSync.mockReturnValue({
+    isSymbolicLink: () => isLink,
+  } as fs.Stats);
+};
+
 describe("cleanupBuildsAndCaches", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     delete process.env.TORCH_DRY_RUN;
     mockedReaddirSync.mockReturnValue([]);
+    setIsLink(false);
   });
 
   it("does not remove directories in dry-run mode", () => {
     process.env.TORCH_DRY_RUN = "1";
     setExistingPaths("dist");
 
-    const cleaned = cleanupBuildsAndCaches(DEFAULT_TORCH_RC_CONFIG);
+    const result = cleanupBuildsAndCaches(DEFAULT_TORCH_RC_CONFIG);
 
-    expect(cleaned).toBe(true);
+    expect(result).toEqual({ cleaned: true, failed: 0 });
     expect(mockedRmSync).not.toHaveBeenCalled();
   });
 
   it("removes default targets and reports a clean project", () => {
     setExistingPaths("dist", "node_modules");
 
-    expect(cleanupBuildsAndCaches(DEFAULT_TORCH_RC_CONFIG)).toBe(true);
+    expect(cleanupBuildsAndCaches(DEFAULT_TORCH_RC_CONFIG)).toEqual({
+      cleaned: true,
+      failed: 0,
+    });
     expect(removedTargets()).toEqual(["node_modules", "dist"]);
 
     mockedRmSync.mockClear();
     setExistingPaths();
 
-    expect(cleanupBuildsAndCaches(DEFAULT_TORCH_RC_CONFIG)).toBe(false);
+    expect(cleanupBuildsAndCaches(DEFAULT_TORCH_RC_CONFIG)).toEqual({
+      cleaned: false,
+      failed: 0,
+    });
     expect(mockedRmSync).not.toHaveBeenCalled();
   });
 
@@ -83,11 +102,20 @@ describe("cleanupBuildsAndCaches", () => {
     expect(removedTargets()).toEqual(["node_modules", "extra"]);
   });
 
+  it("protects a path whatever case it is written in", () => {
+    setExistingPaths("dist", "node_modules");
+
+    cleanupBuildsAndCaches({
+      ...DEFAULT_TORCH_RC_CONFIG,
+      protectedPaths: ["Dist", "NODE_MODULES/"],
+    });
+
+    expect(mockedRmSync).not.toHaveBeenCalled();
+  });
+
   it("keeps a protected file inside a directory that is otherwise removed", () => {
     setExistingPaths("dist", "dist/keep.json", "dist/bundle.js");
-    mockedStatSync.mockReturnValue({ isDirectory: () => true } as fs.Stats);
-    mockedReaddirSync.mockImplementation(((target: string) =>
-      target === "dist" ? ["keep.json", "bundle.js"] : []) as any);
+    setDirectoryEntries("dist", ["keep.json", "bundle.js"]);
 
     cleanupBuildsAndCaches({
       ...DEFAULT_TORCH_RC_CONFIG,
@@ -95,6 +123,68 @@ describe("cleanupBuildsAndCaches", () => {
     });
 
     expect(removedTargets()).toEqual(["dist/bundle.js"]);
+  });
+
+  it("removes a target in one go when the protected path inside it does not exist", () => {
+    setExistingPaths("node_modules");
+
+    cleanupBuildsAndCaches({
+      ...DEFAULT_TORCH_RC_CONFIG,
+      protectedPaths: ["node_modules/.keep"],
+    });
+
+    expect(removedTargets()).toEqual(["node_modules"]);
+    expect(mockedReaddirSync).not.toHaveBeenCalledWith("node_modules");
+  });
+
+  it("leaves a linked target alone when a protected path lies inside it", () => {
+    setExistingPaths("dist", "dist/keep.json", "dist/bundle.js");
+    setDirectoryEntries("dist", ["keep.json", "bundle.js"]);
+    setIsLink(true);
+
+    const result = cleanupBuildsAndCaches({
+      ...DEFAULT_TORCH_RC_CONFIG,
+      protectedPaths: ["dist/keep.json"],
+    });
+
+    expect(mockedRmSync).not.toHaveBeenCalled();
+    expect(result).toEqual({ cleaned: false, failed: 0 });
+    expect(mockedOutputToConsole).toHaveBeenCalledWith(
+      expect.stringContaining("Skipping dist: it is a link"),
+      "warn",
+    );
+  });
+
+  it("counts a path that cannot be removed as a failure and carries on", () => {
+    setExistingPaths("dist", "node_modules");
+    mockedRmSync.mockImplementation((target) => {
+      if (target === "node_modules") throw new Error("EBUSY");
+    });
+
+    const result = cleanupBuildsAndCaches(DEFAULT_TORCH_RC_CONFIG);
+
+    expect(result).toEqual({ cleaned: true, failed: 1 });
+    expect(removedTargets()).toEqual(["node_modules", "dist"]);
+    expect(mockedOutputToConsole).not.toHaveBeenCalledWith(
+      expect.stringContaining("already clean"),
+      "info",
+    );
+  });
+
+  it("counts a directory that cannot be read as a failure and carries on", () => {
+    setExistingPaths("dist", "dist/keep.json", "node_modules");
+    mockedReaddirSync.mockImplementation(((target: string) => {
+      if (target === "dist") throw new Error("EACCES");
+      return [];
+    }) as any);
+
+    const result = cleanupBuildsAndCaches({
+      ...DEFAULT_TORCH_RC_CONFIG,
+      protectedPaths: ["dist/keep.json"],
+    });
+
+    expect(result).toEqual({ cleaned: true, failed: 1 });
+    expect(removedTargets()).toEqual(["node_modules"]);
   });
 
   it("only removes root files that really match a glob pattern", () => {
@@ -124,20 +214,15 @@ describe("cleanupPackageManagerCaches", () => {
     delete process.env.TORCH_DRY_RUN;
   });
 
-  it("cleans only the cache of the package manager the project uses", () => {
-    setExistingPaths("yarn.lock");
-    mockedHasCmd.mockReturnValue(true);
+  it("cleans only the cache of the package manager it is given", () => {
     mockedRun.mockReturnValue(true);
 
-    expect(cleanupPackageManagerCaches()).toBe(true);
+    expect(cleanupPackageManagerCaches("yarn")).toBe(true);
     expect(mockedRun.mock.calls).toEqual([["yarn cache clean"]]);
   });
 
   it("returns false when no package manager is available", () => {
-    setExistingPaths();
-    mockedHasCmd.mockReturnValue(false);
-
-    expect(cleanupPackageManagerCaches()).toBe(false);
+    expect(cleanupPackageManagerCaches(null)).toBe(false);
     expect(mockedRun).not.toHaveBeenCalled();
   });
 });

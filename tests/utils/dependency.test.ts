@@ -15,6 +15,7 @@ vi.mock("../../src/utils/ui", () => ({
 
 import * as fs from "fs";
 import { installDependencies } from "../../src/utils/dependency";
+import { detectPackageManager } from "../../src/utils/package-managers";
 import { hasCmd, run } from "../../src/utils/system";
 
 const mockedExistsSync = vi.mocked(fs.existsSync);
@@ -33,7 +34,7 @@ describe("installDependencies", () => {
     mockedHasCmd.mockImplementation((cmd) => cmd === "pnpm");
     mockedRun.mockReturnValue(true);
 
-    const installed = installDependencies();
+    const installed = installDependencies(detectPackageManager());
 
     expect(installed).toBe(true);
     expect(mockedRun).toHaveBeenCalledWith("pnpm install");
@@ -44,7 +45,7 @@ describe("installDependencies", () => {
     mockedHasCmd.mockImplementation((cmd) => cmd === "npm");
     mockedRun.mockReturnValue(true);
 
-    const installed = installDependencies();
+    const installed = installDependencies(detectPackageManager());
 
     expect(installed).toBe(true);
     expect(mockedRun).toHaveBeenCalledWith("npm install");
@@ -54,7 +55,7 @@ describe("installDependencies", () => {
     mockedExistsSync.mockReturnValue(false);
     mockedHasCmd.mockReturnValue(false);
 
-    const installed = installDependencies();
+    const installed = installDependencies(detectPackageManager());
 
     expect(installed).toBe(false);
     expect(mockedRun).not.toHaveBeenCalled();

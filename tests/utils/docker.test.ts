@@ -47,15 +47,27 @@ describe("dockerCleanup", () => {
     expect(result).toBe("NO_DOCKER");
   });
 
-  it("proceeds with Docker operations when dockerMode is true", () => {
+  it("reports Docker as unavailable when dockerMode is on but Docker is not installed", () => {
     mockedExistsSync.mockImplementation(
       (target) => target === "docker-compose.yml",
     );
+    mockedHasCmd.mockReturnValue(false);
 
     const result = dockerCleanup({ ...baseTorchRc, dockerMode: true });
 
-    // Should proceed to check for Docker files, etc.
-    expect(result).toBe("NO_DOCKER"); // Since we don't have Docker running in test
+    expect(result).toBe("DOCKER_UNAVAILABLE");
+  });
+
+  it("reports Docker as unavailable when the daemon is not running", () => {
+    mockedExistsSync.mockImplementation(
+      (target) => target === "docker-compose.yml",
+    );
+    mockedHasCmd.mockReturnValue(true);
+    mockedRun.mockReturnValue(false);
+
+    const result = dockerCleanup({ ...baseTorchRc, dockerMode: true });
+
+    expect(result).toBe("DOCKER_UNAVAILABLE");
   });
 
   it("skips Docker operations when there is a Dockerfile but no Compose file", () => {

@@ -2,7 +2,7 @@ import * as fs from "fs";
 import { outputToConsole } from "./ui";
 import { hasCmd, run } from "./system";
 import { COLOURS } from "../constants/constants";
-import type { TorchRcConfig } from "../types";
+import type { TorchRcConfig, TorchRecord } from "../types";
 
 const COMPOSE_FILES = [
   "compose.yaml",
@@ -38,7 +38,9 @@ function dockerIsReady(action: string): boolean {
   return true;
 }
 
-function dockerCleanup(torchRcConfig: Required<TorchRcConfig>) {
+function dockerCleanup(
+  torchRcConfig: Required<TorchRcConfig>,
+): TorchRecord["dockerClean"] {
   if (torchRcConfig.dockerMode === false) {
     outputToConsole(
       "Docker mode disabled - skipping Docker operations",
@@ -64,7 +66,7 @@ function dockerCleanup(torchRcConfig: Required<TorchRcConfig>) {
   );
 
   if (!dockerIsReady("cleanup")) {
-    return "NO_DOCKER";
+    return "DOCKER_UNAVAILABLE";
   }
 
   if (!run("docker compose ps", { silent: true })) {

@@ -5,13 +5,10 @@ import {
   CUSTOM_DIRS,
   FILE_PATTERNS,
 } from "../constants/config";
-import {
-  detectPackageManager,
-  cleanPackageManagerCache,
-} from "./package-managers";
+import { cleanPackageManagerCache } from "./package-managers";
+import type { PackageManager } from "./package-managers";
 import type { TorchRcConfig } from "../types";
-import { getCustomPaths } from "./torchrc";
-import { LOG_FILE } from "./logger";
+import { getCustomPaths, getProtectedPaths } from "./torchrc";
 import {
   createCleanupTargetHandler,
   filterProtectedTargets,
@@ -20,10 +17,7 @@ import {
 
 const cleanupBuildsAndCaches = (torchRcConfig: Required<TorchRcConfig>) => {
   const isDryRun = process.env.TORCH_DRY_RUN === "1";
-  // The log being written by this run must survive the *.log sweep
-  const protectedPaths = torchRcConfig.logfile
-    ? [...torchRcConfig.protectedPaths, LOG_FILE]
-    : torchRcConfig.protectedPaths;
+  const protectedPaths = getProtectedPaths(torchRcConfig);
 
   const defaultTargets = [
     ...new Set([...BUILD_DIRS, ...CACHE_DIRS, ...CUSTOM_DIRS]),
@@ -77,25 +71,30 @@ const cleanupBuildsAndCaches = (torchRcConfig: Required<TorchRcConfig>) => {
   }
 
   const removedCount = handler.removedCount();
-  if (removedCount === 0) {
+  const failedCount = handler.failedCount();
+  if (failedCount > 0) {
+    outputToConsole(
+      `${failedCount} path(s) could not be removed - close anything using them and run again`,
+      "fail",
+    );
+  } else if (removedCount === 0) {
     outputToConsole(
       "No build artifacts or cache directories found (project already clean)",
       "info",
     );
-    return false;
   }
 
-  outputToConsole(
-    `${isDryRun ? "Would remove" : "Removed"} ${removedCount} build/cache item(s)`,
-    "success",
-  );
-  return true;
+  if (removedCount > 0) {
+    outputToConsole(
+      `${isDryRun ? "Would remove" : "Removed"} ${removedCount} build/cache item(s)`,
+      "success",
+    );
+  }
+  return { cleaned: removedCount > 0, failed: failedCount };
 };
 
 // Only the package manager this project uses - the others are not ours to clear
-const cleanupPackageManagerCaches = () => {
-  const packageManager = detectPackageManager();
-
+const cleanupPackageManagerCaches = (packageManager: PackageManager | null) => {
   if (!packageManager) {
     outputToConsole(
       "No package manager cache cleaned (npm/yarn/pnpm not available)",

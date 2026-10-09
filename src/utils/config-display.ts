@@ -6,15 +6,18 @@ import {
   CUSTOM_DIRS,
   FILE_PATTERNS,
 } from "../constants/config";
-import { getCustomPaths } from "./torchrc";
+import { getCustomPaths, getProtectedPaths } from "./torchrc";
 import {
   containsProtectedPath,
+  existingPaths,
   filterProtectedTargets,
   matchRootFiles,
 } from "./cleanup-helpers";
 import { DOCKER_FILES } from "./docker";
-import { PACKAGE_MANAGERS } from "./package-managers";
-import { hasCmd } from "./system";
+import {
+  describePackageManager,
+  detectPackageManager,
+} from "./package-managers";
 import type { TorchRcConfig } from "../types";
 
 const info = (message: string) => outputToConsole(message, "info");
@@ -25,16 +28,11 @@ const describePath = (target: string): string => {
 };
 
 function showPackageManagers(): void {
-  info("\nPACKAGE MANAGER DETECTION:");
-  const packageManagers = Object.values(PACKAGE_MANAGERS)
-    .filter((pm) => hasCmd(pm.name))
-    .map(
-      (pm) =>
-        `${pm.name} (${fs.existsSync(pm.lockFile) ? pm.lockFile : "fallback"})`,
-    );
+  info("\nPACKAGE MANAGER:");
+  const packageManager = detectPackageManager();
 
-  if (packageManagers.length > 0) {
-    packageManagers.forEach((pm) => info(`  ${pm}`));
+  if (packageManager) {
+    info(`  ${describePackageManager(packageManager)}`);
   } else {
     outputToConsole("  No package manager detected", "warn");
   }
@@ -50,9 +48,12 @@ function showDockerFiles(): void {
   }
 }
 
-function showGlobPattern(pattern: string): void {
+function showGlobPattern(pattern: string, protectedPaths: string[]): void {
   try {
-    const files = matchRootFiles(pattern);
+    const files = filterProtectedTargets(
+      matchRootFiles(pattern),
+      protectedPaths,
+    );
     if (files.length === 0) {
       info(`    ${pattern} (no matches)`);
       return;
@@ -73,8 +74,9 @@ function showTargetList(
 ): void {
   if (targets.length === 0) return;
   info(title);
+  const keptPaths = existingPaths(protectedPaths);
   targets.forEach((target) => {
-    const note = containsProtectedPath(target, protectedPaths)
+    const note = containsProtectedPath(target, keptPaths)
       ? " - protected contents kept"
       : "";
     info(`    ${target} ${describePath(target)}${note}`);
@@ -113,7 +115,7 @@ function showDeletionTargets(
 
   if (globPatterns.length > 0) {
     info("  Glob patterns:");
-    globPatterns.forEach(showGlobPattern);
+    globPatterns.forEach((pattern) => showGlobPattern(pattern, protectedPaths));
   }
 
   showTargetList("  Custom targets:", customTargets, protectedPaths);
@@ -151,7 +153,7 @@ export function renderTorchConfigDisplay(
 
   showPackageManagers();
   showDockerFiles();
-  showDeletionTargets(customPaths, protectedPaths);
+  showDeletionTargets(customPaths, getProtectedPaths(config));
 
   if (protectedPaths.length > 0) {
     showPathList("\nPROTECTED PATHS (will NOT be deleted):", protectedPaths);
