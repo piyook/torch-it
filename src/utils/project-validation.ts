@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { outputToConsole } from "./ui";
+import { EXIT } from "../constants/constants";
 
 /**
  * Checks if the current directory contains a Node.js project
@@ -33,6 +34,6 @@ export function validateNodeProject(): void {
       "Please create a Node.js project (with package.json) before using torch-it.",
       "info",
     );
-    process.exit(1);
+    process.exit(EXIT.ERROR);
   }
 }

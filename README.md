@@ -136,7 +136,11 @@ At a terminal, `torch-it` uses colour, emoji and boxes. When its output is piped
 | Code | Meaning |
 |------|---------|
 | `0` | Every step that was meant to run succeeded, or there was nothing to do |
-| `1` | Invalid options, no way to confirm, or a step failed: a path could not be removed, dependency install failed, or Docker mode is on and Docker is unavailable or a Docker step failed |
+| `1` | Nothing was changed: invalid options or `torchrc.json`, not a Node.js project, or no terminal to confirm on and no `--yes` |
+| `2` | The run went ahead and a step failed: a path could not be removed, dependency install failed, or Docker mode is on and Docker is unavailable or a Docker step failed |
+| `3` | You answered no at the prompt. Nothing was changed |
+
+A dry run that can see the real run would fail also exits with `2`.
 
 ---
 
@@ -294,10 +298,11 @@ Version 3 closes several ways a run could delete more than intended. If you used
 | Change | What to do |
 |--------|------------|
 | With no terminal (CI, pipes) and no `--yes`, it stops with exit code `1` instead of deleting unprompted | Add `--yes` to automated runs |
+| Answering no at the prompt exits with `3`, not `0` | Check scripts that wrap an interactive run |
 | An invalid `torchrc.json`, an unknown option or a value of the wrong type stops the run. Before, it was ignored | Fix the option it names |
 | `lib`, `es`, `cjs` and `umd` are no longer deleted by default | Add them to `customPaths` if your build writes to them |
 | Only the cache of the package manager your project uses is cleaned, not every one installed | Nothing |
-| Exit code is `1` when a path can not be removed, the dependency install fails, or Docker mode is on and Docker is unavailable or a Docker step fails | Check scripts that assumed `0` |
+| Exit code is `2` when a path can not be removed, the dependency install fails, or Docker mode is on and Docker is unavailable or a Docker step fails | Check scripts that assumed `0` |
 | A `customPaths` entry that is the project root or outside it is refused | Run `torch-it` from the directory you want cleaned |
 | Protected paths are matched without regard to case | Nothing |
 | Docker mode needs a Compose file; a `Dockerfile` alone is skipped. `compose.yaml` and `compose.yml` are now recognised | Nothing |

@@ -17,6 +17,14 @@ export const COLOURS = {
   RESET: (text: string) => (colourEnabled ? `\u001b[0m${text}` : text),
 } as const;
 
+// 1 always means nothing was changed; 2 means the run went ahead and part of it failed
+export const EXIT = {
+  OK: 0,
+  ERROR: 1,
+  STEP_FAILED: 2,
+  CANCELLED: 3,
+} as const;
+
 export const ICONS = {
   INFO: "🔥",
   SUCCESS: "✅",

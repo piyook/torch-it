@@ -8,6 +8,7 @@ import {
 } from "./utils/torch-execution";
 import { validateNodeProject } from "./utils/project-validation";
 import { torchFailed } from "./utils/status";
+import { EXIT } from "./constants/constants";
 
 // --- Initialisation ---
 const cliArgs = process.argv.slice(2);
@@ -41,9 +42,9 @@ void (async () => {
     assumeYes: parsedArgs.assumeYes,
   });
   if (torchFailed(torchRecord)) {
-    process.exitCode = 1;
+    process.exitCode = EXIT.STEP_FAILED;
   }
 })().catch((err) => {
   console.error(err);
-  process.exit(1);
+  process.exit(EXIT.ERROR);
 });
