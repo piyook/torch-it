@@ -1,5 +1,4 @@
 import { outputToConsole } from "./ui";
-import * as fs from "fs";
 import {
   BUILD_DIRS,
   CACHE_DIRS,
@@ -7,118 +6,29 @@ import {
   FILE_PATTERNS,
 } from "../constants/config";
 import {
-  getAvailablePackageManagers,
+  detectPackageManager,
   cleanPackageManagerCache,
 } from "./package-managers";
 import type { TorchRcConfig } from "../types";
-import { DEFAULT_TORCH_RC_CONFIG } from "../types";
+import { getCustomPaths } from "./torchrc";
+import { LOG_FILE } from "./logger";
 import {
   createCleanupTargetHandler,
   filterProtectedTargets,
   processGlobPattern,
 } from "./cleanup-helpers";
 
-const parseCliOverrides = (cliArgs: string[]): Partial<TorchRcConfig> => {
-  const overrides: Partial<TorchRcConfig> = {};
-
-  for (const arg of cliArgs) {
-    if (!arg.startsWith("--")) continue;
-
-    const [key, value] = arg.slice(2).split("=", 2);
-    if (!key || !value) continue;
-
-    try {
-      // Try to parse as JSON first (for arrays/objects)
-      const parsedValue = JSON.parse(value);
-      (overrides as any)[key] = parsedValue;
-    } catch {
-      // If not JSON, treat as string or boolean
-      if (value === "true") {
-        (overrides as any)[key] = true;
-      } else if (value === "false") {
-        (overrides as any)[key] = false;
-      } else {
-        (overrides as any)[key] = value;
-      }
-    }
-  }
-
-  return overrides;
-};
-
-export const loadTorchRcConfig = (): TorchRcConfig => {
-  const torchRcPath = "torchrc.json";
-
-  if (!fs.existsSync(torchRcPath)) {
-    return {};
-  }
-
-  try {
-    const parsed = JSON.parse(
-      fs.readFileSync(torchRcPath, "utf8"),
-    ) as TorchRcConfig;
-    return parsed;
-  } catch {
-    outputToConsole(
-      "Invalid torchrc.json (must be valid JSON) - skipping custom config",
-      "warn",
-    );
-    return {};
-  }
-};
-
-export const getTorchRcConfigFromFile = (): Required<TorchRcConfig> => {
-  const userConfig = loadTorchRcConfig();
-  return {
-    customPaths: userConfig.customPaths ?? DEFAULT_TORCH_RC_CONFIG.customPaths,
-    customDirs: userConfig.customDirs ?? DEFAULT_TORCH_RC_CONFIG.customDirs,
-    customFiles: userConfig.customFiles ?? DEFAULT_TORCH_RC_CONFIG.customFiles,
-    protectedPaths:
-      userConfig.protectedPaths ?? DEFAULT_TORCH_RC_CONFIG.protectedPaths,
-    dockerMode: userConfig.dockerMode ?? DEFAULT_TORCH_RC_CONFIG.dockerMode,
-    logfile: userConfig.logfile ?? DEFAULT_TORCH_RC_CONFIG.logfile,
-    rebuild: userConfig.rebuild ?? DEFAULT_TORCH_RC_CONFIG.rebuild,
-  };
-};
-
-export { loadTorchRcCustomPaths };
-
-export const getTorchRcConfig = (
-  cliArgs: string[] = [],
-): Required<TorchRcConfig> => {
-  const fileConfig = getTorchRcConfigFromFile();
-  const cliOverrides = parseCliOverrides(cliArgs);
-
-  // CLI overrides take precedence over file config
-  return { ...fileConfig, ...cliOverrides };
-};
-
-const loadTorchRcCustomPaths = (): string[] => {
-  const config = getTorchRcConfigFromFile();
-
-  const rawPaths = [
-    ...config.customPaths,
-    ...config.customDirs,
-    ...config.customFiles,
-  ];
-
-  return rawPaths
-    .filter((entry): entry is string => typeof entry === "string")
-    .map((entry) => entry.trim())
-    .filter((entry) => entry.length > 0);
-};
-
-const cleanupBuildsAndCaches = () => {
+const cleanupBuildsAndCaches = (torchRcConfig: Required<TorchRcConfig>) => {
   const isDryRun = process.env.TORCH_DRY_RUN === "1";
-  const torchRcConfig = getTorchRcConfigFromFile();
-  const torchRcCustomPaths = loadTorchRcCustomPaths();
-  const protectedPaths = torchRcConfig.protectedPaths;
+  // The log being written by this run must survive the *.log sweep
+  const protectedPaths = torchRcConfig.logfile
+    ? [...torchRcConfig.protectedPaths, LOG_FILE]
+    : torchRcConfig.protectedPaths;
 
   const defaultTargets = [
     ...new Set([...BUILD_DIRS, ...CACHE_DIRS, ...CUSTOM_DIRS]),
   ];
-  const customTargets = [...new Set(torchRcCustomPaths)];
-  const filePatterns = [...FILE_PATTERNS];
+  const customTargets = getCustomPaths(torchRcConfig);
 
   // Filter out protected paths
   const filteredDefaultTargets = filterProtectedTargets(
@@ -140,9 +50,8 @@ const cleanupBuildsAndCaches = () => {
 
   outputToConsole("Scanning for log files and temporary files...", "step");
 
-  for (const pattern of filePatterns) {
-    const isGlob = pattern.includes("*");
-    if (isGlob) {
+  for (const pattern of FILE_PATTERNS) {
+    if (pattern.includes("*")) {
       processGlobPattern(pattern, handler);
     } else {
       // Handle non-glob patterns (like tsconfig.tsbuildinfo)
@@ -164,10 +73,7 @@ const cleanupBuildsAndCaches = () => {
     filteredDefaultTargets.length +
     (customTargets.length - filteredCustomTargets.length);
   if (totalProtected > 0) {
-    outputToConsole(
-      `Skipped ${totalProtected} protected path(s) from torchrc.json`,
-      "info",
-    );
+    outputToConsole(`Skipped ${totalProtected} protected path(s)`, "info");
   }
 
   const removedCount = handler.removedCount();
@@ -179,28 +85,26 @@ const cleanupBuildsAndCaches = () => {
     return false;
   }
 
-  outputToConsole(`Removed ${removedCount} build/cache directories`, "success");
+  outputToConsole(
+    `${isDryRun ? "Would remove" : "Removed"} ${removedCount} build/cache item(s)`,
+    "success",
+  );
   return true;
 };
 
+// Only the package manager this project uses - the others are not ours to clear
 const cleanupPackageManagerCaches = () => {
-  const availablePackageManagers = getAvailablePackageManagers();
-  let cacheCleaned = false;
+  const packageManager = detectPackageManager();
 
-  for (const pm of availablePackageManagers) {
-    if (cleanPackageManagerCache(pm)) {
-      cacheCleaned = true;
-    }
-  }
-
-  if (!cacheCleaned) {
+  if (!packageManager) {
     outputToConsole(
-      "No package manager caches cleaned (tools not available)",
+      "No package manager cache cleaned (npm/yarn/pnpm not available)",
       "info",
     );
+    return false;
   }
 
-  return cacheCleaned;
+  return cleanPackageManagerCache(packageManager);
 };
 
 export { cleanupBuildsAndCaches, cleanupPackageManagerCaches };

@@ -12,12 +12,12 @@ OPTIONS:
   --version, -v          Show version information and exit
   --config               Show current configuration and exit
   --test                 Run in dry-run mode (preview changes without executing)
-  --yes, -y              Skip the confirmation prompt (same as answering yes)
-  --dockerMode=<bool>    Enable/disable Docker operations (default: false)
+  --yes, -y              Skip the confirmation prompt (required when there is no terminal, e.g. CI)
+  --dockerMode=<bool>    Enable/disable Docker Compose operations (default: false)
   --rebuild=<bool>       Enable/disable rebuild operations (default: true)
   --logfile=<bool>       Enable/disable file logging (default: false)
-  --customPaths=<array>   Additional paths to remove during cleanup
-  --protectedPaths=<array> Paths to skip during cleanup
+  --customPaths=<list>   Additional paths to remove during cleanup (comma-separated)
+  --protectedPaths=<list> Paths to skip during cleanup (comma-separated)
 
 EXAMPLES:
   torch-it                           # Run with default settings
@@ -28,11 +28,16 @@ EXAMPLES:
   torch-it --rebuild=false            # Clean only, don't rebuild
   torch-it --dockerMode=true          # Enable Docker cleanup/rebuild when configured
   torch-it --logfile=true              # Enable file logging
-  torch-it --customPaths=["temp/","logs/"]  # Clean additional paths
+  torch-it --customPaths=temp,logs    # Clean additional paths
+  torch-it --protectedPaths=dist      # Keep a path that would otherwise be removed
+
+EXIT CODES:
+  0  Finished (or nothing to do)
+  1  Invalid options, no confirmation possible, or a step failed
 
 CONFIGURATION:
   Create a torchrc.json file in your project root for persistent settings:
-  
+
   {
     "customPaths": ["apps/web/.next", "coverage-final.json"],
     "protectedPaths": ["important-data/"],
