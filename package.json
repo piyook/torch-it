@@ -1,6 +1,6 @@
 {
   "name": "torch-it",
-  "version": "2.6.2",
+  "version": "3.0.0",
   "description": "CLI to reset, clean, and rebuild Node.js project environments.",
   "keywords": [
     "cleanup",
@@ -23,7 +23,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "llms.txt"
   ],
   "type": "commonjs",
   "main": "dist/torch-it.js",
