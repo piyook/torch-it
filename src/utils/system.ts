@@ -1,10 +1,15 @@
 import { execSync } from "child_process";
+import type { StdioOptions } from "child_process";
 import * as os from "os";
-import { outputToConsole } from "./ui";
+import { isQuiet, outputToConsole } from "./ui";
+
+// With --quiet a command keeps its errors but loses its progress output
+const commandStdio = (): StdioOptions =>
+  isQuiet() ? ["inherit", "ignore", "inherit"] : "inherit";
 
 function run(cmd: string, opts: { silent?: boolean } = {}): boolean {
   try {
-    execSync(cmd, { stdio: opts.silent ? "pipe" : "inherit" });
+    execSync(cmd, { stdio: opts.silent ? "pipe" : commandStdio() });
     return true;
   } catch {
     if (!opts.silent) outputToConsole(`Command failed: ${cmd}`, "fail");

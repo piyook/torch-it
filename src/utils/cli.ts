@@ -4,41 +4,57 @@ import { showHelp } from "./help";
 import { showConfig } from "./config-display";
 import { getTorchRcConfig } from "./torchrc";
 
-export interface CliArgs {
+interface CliFlags {
   isHelp: boolean;
   isVersion: boolean;
   isConfig: boolean;
   isDryRun: boolean;
   assumeYes: boolean;
+  isQuiet: boolean;
+  isPlain: boolean;
+}
+
+export interface CliArgs extends CliFlags {
   filteredArgs: string[];
 }
 
+const FLAGS: Record<string, keyof CliFlags> = {
+  "--help": "isHelp",
+  "-h": "isHelp",
+  "--version": "isVersion",
+  "-v": "isVersion",
+  "--config": "isConfig",
+  "--test": "isDryRun",
+  "--yes": "assumeYes",
+  "-y": "assumeYes",
+  "--quiet": "isQuiet",
+  "-q": "isQuiet",
+  "--plain": "isPlain",
+};
+
 export function parseCliArgs(args: string[]): CliArgs {
-  const isHelp = args.includes("--help");
-  const isVersion = args.includes("--version") || args.includes("-v");
-  const isConfig = args.includes("--config");
-  const isDryRun = args.includes("--test");
-  const assumeYes = args.includes("--yes") || args.includes("-y");
-
-  const filteredArgs = args.filter(
-    (arg) =>
-      arg !== "--test" &&
-      arg !== "--help" &&
-      arg !== "--version" &&
-      arg !== "-v" &&
-      arg !== "--config" &&
-      arg !== "--yes" &&
-      arg !== "-y",
-  );
-
-  return {
-    isHelp,
-    isVersion,
-    isConfig,
-    isDryRun,
-    assumeYes,
-    filteredArgs,
+  const parsed: CliArgs = {
+    isHelp: false,
+    isVersion: false,
+    isConfig: false,
+    isDryRun: false,
+    assumeYes: false,
+    isQuiet: false,
+    isPlain: false,
+    filteredArgs: [],
   };
+
+  for (const arg of args) {
+    const flag = FLAGS[arg];
+    if (flag) {
+      parsed[flag] = true;
+    } else {
+      // Everything else is a config override, checked by the config parser
+      parsed.filteredArgs.push(arg);
+    }
+  }
+
+  return parsed;
 }
 
 export function handleSpecialFlags(args: CliArgs): void {

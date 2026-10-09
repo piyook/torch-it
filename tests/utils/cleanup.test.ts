@@ -9,6 +9,7 @@ vi.mock("fs", () => ({
 
 vi.mock("../../src/utils/ui", () => ({
   outputToConsole: vi.fn(),
+  showInFull: vi.fn((fn: () => void) => fn()),
 }));
 
 vi.mock("../../src/utils/system", () => ({
@@ -69,6 +70,10 @@ describe("cleanupBuildsAndCaches", () => {
 
     expect(result).toEqual({ cleaned: true, failed: 0 });
     expect(mockedRmSync).not.toHaveBeenCalled();
+    expect(mockedOutputToConsole).toHaveBeenCalledWith(
+      "Would remove dist",
+      "info",
+    );
   });
 
   it("removes default targets and reports a clean project", () => {

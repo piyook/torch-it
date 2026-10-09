@@ -19,8 +19,8 @@
 3. Run the same command with `--yes` in place of `--test`.
 
 ```bash
-torch-it --test    # dry run, exit 0
-torch-it --yes     # the real run
+torch-it --test            # dry run, exit 0
+torch-it --yes --quiet     # the real run, short output
 ```
 
 Without `--yes`, torch-it shows the plan and asks "Continue? Type Yes or No (y/n)" on a terminal. With no terminal (an agent's shell, CI, a pipe) it deletes nothing, writes nothing, prints an error and exits `1`. Do not pipe `y` into the prompt: use `--yes`. A Git Bash window can count as no terminal; there `winpty torch-it` gives it one.
@@ -40,8 +40,10 @@ A list given on the command line is ADDED to the list of the same name in `torch
 |---|---|
 | `--test` | Dry run. Lists what would be removed and run, changes nothing, never prompts |
 | `--yes`, `-y` | Run without the confirmation prompt |
+| `--quiet`, `-q` | Print only warnings, errors and the final summary. Hides the progress output of the install and Docker commands |
+| `--plain` | Plain output at a terminal. Already the case when output is captured |
 | `--config` | Print the resolved settings and the targets that exist, then exit. Includes any overrides passed with it |
-| `--help` | Usage |
+| `--help`, `-h` | Usage |
 | `--version`, `-v` | `torch-it v<version>` |
 | `--protectedPaths=a,b` | Paths to keep |
 | `--customPaths=a,b` | Extra paths to delete |
@@ -106,6 +108,24 @@ Optional file in the project root. For the boolean options the command line over
 
 **Docker mode** runs only when a Compose file is in the project root: `compose.yaml`, `compose.yml`, `docker-compose.yaml` or `docker-compose.yml`. A `Dockerfile` alone is not enough. It uses the `docker compose` plugin: `down --rmi all --volumes`, then `build --pull --no-cache`, then `up -d`. If Docker mode is on and Docker is not installed or the daemon is not running, the Docker steps do not run, the rest of the run continues, and the exit code is `1`. A dry run in Docker mode still runs the read-only `docker info` and `docker compose ps`.
 
+## Output
+
+When stdout is not a terminal, which is always the case for an agent or a script, output is plain: no colour codes, emoji, banner or boxes. Each line has a fixed prefix:
+
+| Prefix | Meaning | Stream |
+|---|---|---|
+| `> ` | A step is starting | stdout |
+| `ok: ` | Something succeeded, e.g. `ok: dist removed` | stdout |
+| `warning: ` | Something was skipped or needs a look | stderr |
+| `error: ` | Something failed, e.g. `error: Failed to remove node_modules` | stderr |
+| none | Information, and the summary lines at the end | stdout |
+
+- Warnings and errors go to stderr, everything else to stdout. Capture both.
+- A dry run prints one `Would remove <path>` line per path, with no prefix. A real run prints `> Removing <path>...` then `ok: <path> removed`.
+- Use `--quiet` to keep the output short: only `warning:` and `error:` lines, the `Would remove` lines of a dry run and the summary are printed, and the install and Docker commands lose their progress output but keep their errors.
+- The output of `npm install` and `docker compose` is passed straight through and is not prefixed.
+- At a terminal the same messages carry colour and emoji instead of prefixes. `--plain` turns that off, and `NO_COLOR` turns off colour only.
+
 ## Exit codes
 
 | Code | Meaning |
@@ -117,7 +137,7 @@ Optional file in the project root. For the boolean options the command line over
 - A failed package manager cache clean is the one failure that does not change the exit code. The summary shows `Package manager cache not cleaned`.
 - A dry run exits `1` when it can already see the real run would fail, for example Docker mode with no Docker.
 - The summary box at the end starts with `PROJECT SUCCESSFULLY TORCHED`, `TORCHED WITH ERRORS`, `DRY RUN COMPLETE - NOTHING WAS CHANGED` or `DRY RUN FOUND PROBLEMS - NOTHING WAS CHANGED`.
-- Output is for people: ANSI colours and emoji, no JSON or porcelain form. Rely on the exit code and on the phrases quoted here, not on layout. With `--logfile=true` the same text is written to `torch-it.log` without colour codes.
+- There is no JSON form. Rely on the exit code first, then on the line prefixes and the phrases quoted here. With `--logfile=true` the same text is written to `torch-it.log`.
 
 ## Recipes
 

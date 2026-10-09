@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import { outputToConsole } from "./ui";
+import { outputToConsole, showInFull } from "./ui";
 
 export interface CleanupOptions {
   isDryRun: boolean;
@@ -96,18 +96,17 @@ export function createCleanupTargetHandler(options: CleanupOptions) {
   let failedCount = 0;
 
   const removeTarget = (target: string): void => {
-    outputToConsole(
-      `${isDryRun ? "Would remove" : "Removing"} ${target}...`,
-      "step",
-    );
+    if (isDryRun) {
+      // The plan is what a dry run is for, so --quiet does not hide it
+      showInFull(() => outputToConsole(`Would remove ${target}`, "info"));
+      removedCount++;
+      return;
+    }
+
+    outputToConsole(`Removing ${target}...`, "step");
     try {
-      if (!isDryRun) {
-        fs.rmSync(target, { recursive: true, force: true });
-      }
-      outputToConsole(
-        `${target} ${isDryRun ? "marked for removal (dry-run)" : "removed"}`,
-        "success",
-      );
+      fs.rmSync(target, { recursive: true, force: true });
+      outputToConsole(`${target} removed`, "success");
       removedCount++;
     } catch {
       outputToConsole(`Failed to remove ${target}`, "fail");

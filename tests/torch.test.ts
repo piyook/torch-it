@@ -23,9 +23,11 @@ vi.mock("../src/utils/dependency", () => ({
 }));
 
 vi.mock("../src/utils/ui", () => ({
+  configureOutput: vi.fn(),
   printBanner: vi.fn(),
   outputToConsole: vi.fn(),
   printRisingFromAshesBanner: vi.fn(),
+  showInFull: vi.fn((fn: () => void) => fn()),
 }));
 
 vi.mock("../src/utils/logger", () => ({

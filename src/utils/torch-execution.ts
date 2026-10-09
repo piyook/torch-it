@@ -1,5 +1,5 @@
 import { dockerCleanup, dockerRebuild, dockerLaunch } from "./docker";
-import { outputToConsole, printRisingFromAshesBanner } from "./ui";
+import { outputToConsole, printRisingFromAshesBanner, showInFull } from "./ui";
 import { ICONS } from "../constants/constants";
 import { cleanupBuildsAndCaches, cleanupPackageManagerCaches } from "./cleanup";
 import { installDependencies } from "./dependency";
@@ -37,15 +37,18 @@ export function ensureRunCanBeConfirmed(options: {
 async function confirmDestructiveRun(
   torchRcConfig: typeof DEFAULT_TORCH_RC_CONFIG,
 ): Promise<void> {
-  outputToConsole(
-    "\nReview the cleanup below. Matching paths and Docker actions (if enabled) will run next.",
-    "warn",
-  );
-  renderTorchConfigDisplay(torchRcConfig, { includeHelpFooter: false });
-  outputToConsole(
-    "\nThese targets will be removed where they exist. Package caches may be cleared and dependencies reinstalled per your settings.",
-    "warn",
-  );
+  // The plan being agreed to is shown even with --quiet
+  showInFull(() => {
+    outputToConsole(
+      "\nReview the cleanup below. Matching paths and Docker actions (if enabled) will run next.",
+      "warn",
+    );
+    renderTorchConfigDisplay(torchRcConfig, { includeHelpFooter: false });
+    outputToConsole(
+      "\nThese targets will be removed where they exist. Package caches may be cleared and dependencies reinstalled per your settings.",
+      "warn",
+    );
+  });
   const proceed = await promptYesNo("Continue? Type Yes or No (y/n): ");
   if (!proceed) {
     outputToConsole("Aborted.", "info");

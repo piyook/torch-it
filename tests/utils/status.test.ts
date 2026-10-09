@@ -114,9 +114,19 @@ describe("statusMessage", () => {
   });
 
   it("makes clear that a dry run changed nothing", () => {
-    const lines = linesFor({ ...successRecord, dryRun: true });
+    const lines = linesFor({ ...dockerSuccessRecord, dryRun: true });
 
     expect(lines[0]).toContain("DRY RUN COMPLETE - NOTHING WAS CHANGED");
+    expect(lines).toEqual(
+      expect.arrayContaining([
+        "🔥 All build artifacts & caches would be removed",
+        "🔥 Package manager cache would be cleaned",
+        "📦 Dependencies would be installed",
+        "🐳 Docker containers, images and volumes would be removed",
+        "🐳 Docker containers would be rebuilt",
+        "🔥 Services would be started",
+      ]),
+    );
   });
 
   it("informs user that file logging is disabled when logfile is false", () => {
