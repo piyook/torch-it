@@ -119,6 +119,16 @@ torch-it --cacheClean=false                       # full clean, but leave the sh
 
 `--only` replaces the built-in targets, the file patterns and your `customPaths` with the paths you list. Protected paths still apply.
 
+### Files tracked in git are kept
+
+A file that is committed is somebody's work, not build output. If a target such as `build`, `out` or `tmp` holds files that git tracks, `torch-it` keeps those files and removes only what is around them:
+
+- a `dist` folder holding one tracked `.gitkeep` is emptied, and the `.gitkeep` stays
+- a `build` folder that is entirely committed is left untouched
+- a tracked `debug.log` in the project root survives the `*.log` sweep
+
+The preview and the summary say how many files were kept and where. To remove them as well, pass `--allowTracked=true`. Outside a git repository nothing changes.
+
 ### Run in another directory
 
 ```bash
@@ -176,6 +186,7 @@ Create a `torchrc.json` file in your project root to customise behaviour. Everyt
   "dockerVolumes": false,
   "rebuild": true,
   "cacheClean": true,
+  "allowTracked": false,
   "logfile": false
 }
 ```
@@ -189,6 +200,7 @@ Create a `torchrc.json` file in your project root to customise behaviour. Everyt
 | `rebuild` | `boolean` | `true` | Set to `false` to skip dependency reinstall and Docker rebuild (cleanup still runs) |
 | `cacheClean` | `boolean` | `true` | Set to `false` to leave the package manager's machine-wide cache alone |
 | `only` | `string[]` | `[]` | When set, remove only these paths. The built-in targets, file patterns and `customPaths` are skipped |
+| `allowTracked` | `boolean` | `false` | Set to `true` to also remove files that git tracks. By default they are kept |
 | `logfile` | `boolean` | `false` | Write runtime output to `torch-it.log` in the project root |
 
 `customDirs` and `customFiles` are also accepted and behave exactly like `customPaths`.
@@ -232,6 +244,7 @@ List options take comma-separated paths. A JSON array works too, but most shells
 | `--dockerMode=true\|false` | Enable/disable Docker steps |
 | `--dockerVolumes=true\|false` | Also remove Docker volumes in Docker mode |
 | `--cacheClean=true\|false` | Enable/disable the package manager cache clean |
+| `--allowTracked=true\|false` | Also remove files tracked in git, which are kept by default |
 | `--rebuild=true\|false` | Enable/disable dependency reinstall and Docker rebuild |
 | `--logfile=true\|false` | Enable/disable log file output |
 
@@ -334,6 +347,7 @@ Version 3 closes several ways a run could delete more than intended. If you used
 | Exit code is `2` when a path can not be removed, the dependency install fails, or Docker mode is on and Docker is unavailable or a Docker step fails | Check scripts that assumed `0` |
 | A `customPaths` entry that is the project root or outside it is refused | Run `torch-it` from the directory you want cleaned |
 | Protected paths are matched without regard to case | Nothing |
+| Files tracked in git are kept, even inside a target such as `build` | Pass `--allowTracked=true` if you really commit your build output and want it wiped |
 | Docker mode no longer removes volumes unless `dockerVolumes` is `true` | Set it if you relied on volumes being wiped |
 | Docker mode needs a Compose file; a `Dockerfile` alone is skipped. `compose.yaml` and `compose.yml` are now recognised | Nothing |
 | `*.log`, `*.tgz` and `*.tar.gz` match those extensions only. Before, `*.log` also caught root files such as `catalog.json` | Nothing |

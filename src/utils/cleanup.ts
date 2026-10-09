@@ -2,8 +2,11 @@ import { outputToConsole } from "./ui";
 import { cleanPackageManagerCache } from "./package-managers";
 import type { PackageManager } from "./package-managers";
 import type { TorchRcConfig } from "../types";
-import { getProtectedPaths } from "./torchrc";
-import { getCleanupPlan } from "./targets";
+import {
+  describeTrackedLocations,
+  getCleanupPlan,
+  getRunProtection,
+} from "./targets";
 import {
   createCleanupTargetHandler,
   filterProtectedTargets,
@@ -56,8 +59,11 @@ const reportCleanup = (handler: CleanupHandler, isDryRun: boolean) => {
 
 const cleanupBuildsAndCaches = (torchRcConfig: Required<TorchRcConfig>) => {
   const isDryRun = process.env.TORCH_DRY_RUN === "1";
-  const protectedPaths = getProtectedPaths(torchRcConfig);
   const plan = getCleanupPlan(torchRcConfig);
+  const { protectedPaths, trackedFiles } = getRunProtection(
+    torchRcConfig,
+    plan,
+  );
 
   // Filter out protected paths
   const defaultTargets = filterProtectedTargets(
@@ -100,7 +106,14 @@ const cleanupBuildsAndCaches = (torchRcConfig: Required<TorchRcConfig>) => {
     outputToConsole(`Skipped ${totalProtected} protected path(s)`, "info");
   }
 
-  return reportCleanup(handler, isDryRun);
+  if (trackedFiles.length > 0) {
+    outputToConsole(
+      `Kept ${trackedFiles.length} file(s) tracked in git, under: ${describeTrackedLocations(trackedFiles)}. Pass --allowTracked=true to remove them too.`,
+      "warn",
+    );
+  }
+
+  return { ...reportCleanup(handler, isDryRun), tracked: trackedFiles.length };
 };
 
 // Only the package manager this project uses - the others are not ours to clear

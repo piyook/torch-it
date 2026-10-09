@@ -79,7 +79,11 @@ describe("torch main functionality", () => {
     // Mock process.argv
     process.argv = ["node", "torch-it", "--yes"];
     delete process.env.TORCH_DRY_RUN;
-    mockedCleanupBuildsAndCaches.mockReturnValue({ cleaned: true, failed: 0 });
+    mockedCleanupBuildsAndCaches.mockReturnValue({
+      cleaned: true,
+      failed: 0,
+      tracked: 0,
+    });
   });
 
   it("performs dependency installation when rebuild is true", async () => {
@@ -93,11 +97,16 @@ describe("torch main functionality", () => {
       cacheClean: true,
       dockerVolumes: false,
       only: [],
+      allowTracked: false,
       rebuild: true,
     });
 
     mockedDockerCleanup.mockReturnValue("OK");
-    mockedCleanupBuildsAndCaches.mockReturnValue({ cleaned: true, failed: 0 });
+    mockedCleanupBuildsAndCaches.mockReturnValue({
+      cleaned: true,
+      failed: 0,
+      tracked: 0,
+    });
     mockedCleanupPackageManagerCaches.mockReturnValue(true);
     mockedInstallDependencies.mockReturnValue(true);
     mockedDockerRebuild.mockReturnValue(true);
@@ -123,11 +132,16 @@ describe("torch main functionality", () => {
       cacheClean: true,
       dockerVolumes: false,
       only: [],
+      allowTracked: false,
       rebuild: false,
     });
 
     mockedDockerCleanup.mockReturnValue("OK");
-    mockedCleanupBuildsAndCaches.mockReturnValue({ cleaned: true, failed: 0 });
+    mockedCleanupBuildsAndCaches.mockReturnValue({
+      cleaned: true,
+      failed: 0,
+      tracked: 0,
+    });
     mockedCleanupPackageManagerCaches.mockReturnValue(true);
 
     // Import and run the main module
@@ -158,11 +172,16 @@ describe("torch main functionality", () => {
       cacheClean: true,
       dockerVolumes: false,
       only: [],
+      allowTracked: false,
       rebuild: true,
     });
 
     mockedDockerCleanup.mockReturnValue("NO_DOCKER");
-    mockedCleanupBuildsAndCaches.mockReturnValue({ cleaned: true, failed: 0 });
+    mockedCleanupBuildsAndCaches.mockReturnValue({
+      cleaned: true,
+      failed: 0,
+      tracked: 0,
+    });
     mockedCleanupPackageManagerCaches.mockReturnValue(true);
     mockedInstallDependencies.mockReturnValue(true);
 
@@ -254,11 +273,16 @@ describe("torch main functionality", () => {
       cacheClean: true,
       dockerVolumes: false,
       only: [],
+      allowTracked: false,
       rebuild: true,
     });
 
     mockedDockerCleanup.mockReturnValue("OK");
-    mockedCleanupBuildsAndCaches.mockReturnValue({ cleaned: true, failed: 0 });
+    mockedCleanupBuildsAndCaches.mockReturnValue({
+      cleaned: true,
+      failed: 0,
+      tracked: 0,
+    });
     mockedCleanupPackageManagerCaches.mockReturnValue(true);
     mockedInstallDependencies.mockReturnValue(true);
     mockedDockerRebuild.mockReturnValue(true);
@@ -361,6 +385,7 @@ describe("torch main functionality", () => {
       cacheClean: true,
       dockerVolumes: false,
       only: [],
+      allowTracked: false,
       rebuild: true,
     });
 

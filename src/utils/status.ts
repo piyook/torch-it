@@ -49,10 +49,14 @@ const buildAndCacheLines = (torchRecord: TorchRecord): string[] => {
       `${ICONS.FAIL} ${failures} path(s) could not be removed (in use or locked?)`,
     ];
   }
+  const kept = torchRecord.trackedKept ?? 0;
   return [
     torchRecord.buildAndCacheClean
       ? `${ICONS.CLEAN} All build artifacts & caches ${done(torchRecord, "removed")}`
       : `${ICONS.STARS} No build artifacts found (already clean)`,
+    ...(kept > 0
+      ? [`${ICONS.WARN} ${kept} file(s) tracked in git were kept`]
+      : []),
   ];
 };
 

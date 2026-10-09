@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import * as path from "path";
 import {
+  createProtectionIndex,
   containsProtectedPath,
   filterProtectedTargets,
   isInsideProject,
@@ -44,6 +45,29 @@ describe("containsProtectedPath", () => {
     expect(containsProtectedPath("dist", ["distribution/keep.json"])).toBe(
       false,
     );
+  });
+});
+
+describe("createProtectionIndex", () => {
+  it("answers for many protected paths at once", () => {
+    const files = Array.from({ length: 5000 }, (_, i) => `build/src/f${i}.js`);
+    const index = createProtectionIndex([...files, "dist/.gitkeep"]);
+
+    expect(index.covers("build/src/f4999.js")).toBe(true);
+    expect(index.covers("build/src/other.js")).toBe(false);
+    expect(index.holds("build")).toBe(true);
+    expect(index.holds("build/src")).toBe(true);
+    expect(index.holds("dist")).toBe(true);
+    expect(index.holds("dist/.gitkeep")).toBe(false);
+    expect(index.holds("coverage")).toBe(false);
+    expect(index.holds(".")).toBe(true);
+  });
+
+  it("protects nothing when given nothing", () => {
+    const index = createProtectionIndex([]);
+
+    expect(index.covers("dist")).toBe(false);
+    expect(index.holds(".")).toBe(false);
   });
 });
 

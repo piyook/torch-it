@@ -11,6 +11,7 @@ export type TorchRecord = {
   cleanupFailures?: number;
   cacheClean?: boolean;
   dockerVolumes?: boolean;
+  trackedKept?: number;
 };
 
 export type TorchRcConfig = {
@@ -24,6 +25,7 @@ export type TorchRcConfig = {
   logfile?: boolean;
   rebuild?: boolean;
   cacheClean?: boolean;
+  allowTracked?: boolean;
 };
 
 export const DEFAULT_TORCH_RC_CONFIG: Required<TorchRcConfig> = {
@@ -37,4 +39,5 @@ export const DEFAULT_TORCH_RC_CONFIG: Required<TorchRcConfig> = {
   logfile: false,
   rebuild: true,
   cacheClean: true,
+  allowTracked: false,
 };
