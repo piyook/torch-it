@@ -41,8 +41,11 @@ OUTPUT:
 
 EXIT CODES:
   0  Every step succeeded (or nothing to do)
-  1  Invalid options, no confirmation possible, or a step failed
-     (a path could not be removed, install failed, Docker unavailable or failed)
+  1  Nothing was changed: invalid options, not a Node.js project,
+     or no terminal to confirm on and no --yes
+  2  The run went ahead and a step failed (a path could not be removed,
+     install failed, Docker unavailable or failed)
+  3  You answered no at the prompt
 
 CONFIGURATION:
   Create a torchrc.json file in your project root for persistent settings:

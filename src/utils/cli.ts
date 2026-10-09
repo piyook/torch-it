@@ -3,6 +3,7 @@ import { outputToConsole } from "./ui";
 import { showHelp } from "./help";
 import { showConfig } from "./config-display";
 import { getTorchRcConfig } from "./torchrc";
+import { EXIT } from "../constants/constants";
 
 interface CliFlags {
   isHelp: boolean;
@@ -61,20 +62,20 @@ export function handleSpecialFlags(args: CliArgs): void {
   if (args.isHelp) {
     setLoggerEnabled(false);
     showHelp();
-    process.exit(0);
+    process.exit(EXIT.OK);
   }
 
   if (args.isVersion) {
     setLoggerEnabled(false);
     const packageJson = require("../../package.json");
     outputToConsole(`torch-it v${packageJson.version}`, "info");
-    process.exit(0);
+    process.exit(EXIT.OK);
   }
 
   if (args.isConfig) {
     setLoggerEnabled(false);
     showConfig(getTorchRcConfig(args.filteredArgs));
-    process.exit(0);
+    process.exit(EXIT.OK);
   }
 
   if (args.isDryRun) {

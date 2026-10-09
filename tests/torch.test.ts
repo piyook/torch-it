@@ -35,6 +35,10 @@ vi.mock("../src/utils/logger", () => ({
   clearLog: vi.fn(),
 }));
 
+vi.mock("../src/utils/prompt", () => ({
+  promptYesNo: vi.fn(),
+}));
+
 vi.mock("../src/utils/status", () => ({
   statusMessage: vi.fn(),
   torchFailed: vi.fn(() => false),
@@ -53,6 +57,8 @@ import { getTorchRcConfig } from "../src/utils/torchrc";
 import { installDependencies } from "../src/utils/dependency";
 import { outputToConsole, printRisingFromAshesBanner } from "../src/utils/ui";
 import { clearLog } from "../src/utils/logger";
+import { promptYesNo } from "../src/utils/prompt";
+import { torchFailed } from "../src/utils/status";
 
 const mockedDockerCleanup = vi.mocked(dockerCleanup);
 const mockedDockerRebuild = vi.mocked(dockerRebuild);
@@ -185,6 +191,44 @@ describe("torch main functionality", () => {
     } finally {
       process.exit = originalExit;
       process.stdin.isTTY = originalIsTTY;
+    }
+  });
+
+  it("exits with 3 and deletes nothing when the prompt is answered no", async () => {
+    process.argv = ["node", "torch-it"];
+    const originalIsTTY = process.stdin.isTTY;
+    process.stdin.isTTY = true;
+    vi.mocked(promptYesNo).mockResolvedValue(false);
+
+    // Stop at the exit, as the real process would
+    const originalExit = process.exit;
+    process.exit = vi.fn().mockImplementationOnce(() => {
+      throw new Error("exit");
+    }) as any;
+    const mockedConsoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    try {
+      await import("../src/torch.js");
+      await vi.waitFor(() => expect(process.exit).toHaveBeenCalledWith(3));
+
+      expect(mockedCleanupBuildsAndCaches).not.toHaveBeenCalled();
+    } finally {
+      process.exit = originalExit;
+      process.stdin.isTTY = originalIsTTY;
+      mockedConsoleError.mockRestore();
+    }
+  });
+
+  it("exits with 2 when the run went ahead and a step failed", async () => {
+    vi.mocked(torchFailed).mockReturnValueOnce(true);
+
+    try {
+      await import("../src/torch.js");
+      await vi.waitFor(() => expect(process.exitCode).toBe(2));
+    } finally {
+      process.exitCode = undefined;
     }
   });
 

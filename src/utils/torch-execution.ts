@@ -1,6 +1,6 @@
 import { dockerCleanup, dockerRebuild, dockerLaunch } from "./docker";
 import { outputToConsole, printRisingFromAshesBanner, showInFull } from "./ui";
-import { ICONS } from "../constants/constants";
+import { EXIT, ICONS } from "../constants/constants";
 import { cleanupBuildsAndCaches, cleanupPackageManagerCaches } from "./cleanup";
 import { installDependencies } from "./dependency";
 import { detectPackageManager } from "./package-managers";
@@ -31,7 +31,7 @@ export function ensureRunCanBeConfirmed(options: {
       "info",
     );
   }
-  process.exit(1);
+  process.exit(EXIT.ERROR);
 }
 
 async function confirmDestructiveRun(
@@ -51,8 +51,8 @@ async function confirmDestructiveRun(
   });
   const proceed = await promptYesNo("Continue? Type Yes or No (y/n): ");
   if (!proceed) {
-    outputToConsole("Aborted.", "info");
-    process.exit(0);
+    outputToConsole("Aborted. Nothing was changed.", "info");
+    process.exit(EXIT.CANCELLED);
   }
 }
 

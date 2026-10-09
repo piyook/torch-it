@@ -106,7 +106,7 @@ Optional file in the project root. For the boolean options the command line over
 
 **Package manager**: chosen once per run, after the cleanup: the first of pnpm, yarn, npm whose lockfile (`pnpm-lock.yaml`, `yarn.lock`, `package-lock.json`) is present and whose command is on the PATH. With no lockfile: the first of npm, yarn, pnpm that is installed. It runs `<pm> install`, never `npm ci`.
 
-**Docker mode** runs only when a Compose file is in the project root: `compose.yaml`, `compose.yml`, `docker-compose.yaml` or `docker-compose.yml`. A `Dockerfile` alone is not enough. It uses the `docker compose` plugin: `down --rmi all --volumes`, then `build --pull --no-cache`, then `up -d`. If Docker mode is on and Docker is not installed or the daemon is not running, the Docker steps do not run, the rest of the run continues, and the exit code is `1`. A dry run in Docker mode still runs the read-only `docker info` and `docker compose ps`.
+**Docker mode** runs only when a Compose file is in the project root: `compose.yaml`, `compose.yml`, `docker-compose.yaml` or `docker-compose.yml`. A `Dockerfile` alone is not enough. It uses the `docker compose` plugin: `down --rmi all --volumes`, then `build --pull --no-cache`, then `up -d`. If Docker mode is on and Docker is not installed or the daemon is not running, the Docker steps do not run, the rest of the run continues, and the exit code is `2`. A dry run in Docker mode still runs the read-only `docker info` and `docker compose ps`.
 
 ## Output
 
@@ -130,12 +130,15 @@ When stdout is not a terminal, which is always the case for an agent or a script
 
 | Code | Meaning |
 |---|---|
-| `0` | Every step that was meant to run succeeded, a dry run found no problem, `--config`, `--help` or `--version` was shown, or the user answered the prompt with anything but `y`/`yes` |
-| `1` | Invalid option or `torchrc.json`, not a Node.js project, no terminal and no `--yes`, a path could not be removed, dependency install failed, Docker mode is on but Docker is not available, or a Docker teardown, rebuild or start failed |
+| `0` | Every step that was meant to run succeeded, a dry run found no problem, or `--config`, `--help` or `--version` was shown |
+| `1` | Nothing was changed: invalid option or `torchrc.json`, not a Node.js project, or no terminal and no `--yes` |
+| `2` | The run went ahead and at least one step failed: a path could not be removed, dependency install failed, Docker mode is on but Docker is not available, or a Docker teardown, rebuild or start failed |
+| `3` | The user answered the prompt with anything but `y`/`yes`. Nothing was changed |
 
-- A path that could not be deleted (locked or in use) prints `Failed to remove <path>`, the run carries on with the rest, and the exit code is `1`. On Windows the usual cause is a running dev server or editor holding `node_modules`: stop it and run again.
+- A path that could not be deleted (locked or in use) prints `Failed to remove <path>`, the run carries on with the rest, and the exit code is `2`. On Windows the usual cause is a running dev server or editor holding `node_modules`: stop it and run again.
 - A failed package manager cache clean is the one failure that does not change the exit code. The summary shows `Package manager cache not cleaned`.
-- A dry run exits `1` when it can already see the real run would fail, for example Docker mode with no Docker.
+- A dry run exits `2` when it can already see the real run would fail, for example Docker mode with no Docker. Nothing was changed.
+- After exit `1` or `3` it is safe to fix the cause and run again. After exit `2` the project is partly cleaned: read the `error:` lines, fix the cause and run again, which is safe to repeat.
 - The summary box at the end starts with `PROJECT SUCCESSFULLY TORCHED`, `TORCHED WITH ERRORS`, `DRY RUN COMPLETE - NOTHING WAS CHANGED` or `DRY RUN FOUND PROBLEMS - NOTHING WAS CHANGED`.
 - There is no JSON form. Rely on the exit code first, then on the line prefixes and the phrases quoted here. With `--logfile=true` the same text is written to `torch-it.log`.
 
