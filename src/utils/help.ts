@@ -8,11 +8,13 @@ USAGE:
   torch-it [options]
 
 OPTIONS:
-  --help                 Show this help message and exit
+  --help, -h             Show this help message and exit
   --version, -v          Show version information and exit
   --config               Show current configuration and exit
   --test                 Run in dry-run mode (preview changes without executing)
   --yes, -y              Skip the confirmation prompt (required when there is no terminal, e.g. CI)
+  --quiet, -q            Print only warnings, errors and the final summary
+  --plain                No colour, emoji, banner or boxes (automatic when output is not a terminal)
   --dockerMode=<bool>    Enable/disable Docker Compose operations (default: false)
   --rebuild=<bool>       Enable/disable rebuild operations (default: true)
   --logfile=<bool>       Enable/disable file logging (default: false)
@@ -32,6 +34,10 @@ EXAMPLES:
   torch-it --logfile=true              # Enable file logging
   torch-it --customPaths=temp,logs    # Clean additional paths
   torch-it --protectedPaths=dist      # Keep a path that would otherwise be removed
+
+OUTPUT:
+  Warnings and errors go to stderr, everything else to stdout.
+  Set NO_COLOR to turn colour off and keep the rest.
 
 EXIT CODES:
   0  Every step succeeded (or nothing to do)

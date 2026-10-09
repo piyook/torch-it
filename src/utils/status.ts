@@ -2,6 +2,18 @@ import { COLOURS, ICONS } from "../constants/constants";
 import { printBox } from "./ui";
 import type { TorchRecord } from "../types";
 
+// A dry run did none of it, so its summary must not say that it did
+const DRY_RUN_WORDING: Record<string, string> = {
+  removed: "would be removed",
+  cleaned: "would be cleaned",
+  "freshly installed": "would be installed",
+  "rebuilt from scratch": "would be rebuilt",
+  "running in detached mode": "would be started",
+};
+
+const done = (torchRecord: TorchRecord, wording: string): string =>
+  torchRecord.dryRun ? DRY_RUN_WORDING[wording] : wording;
+
 const cleanupFailures = (torchRecord: TorchRecord): number =>
   torchRecord.cleanupFailures ?? 0;
 
@@ -39,7 +51,7 @@ const buildAndCacheLines = (torchRecord: TorchRecord): string[] => {
   }
   return [
     torchRecord.buildAndCacheClean
-      ? `${ICONS.CLEAN} All build artifacts & caches removed`
+      ? `${ICONS.CLEAN} All build artifacts & caches ${done(torchRecord, "removed")}`
       : `${ICONS.STARS} No build artifacts found (already clean)`,
   ];
 };
@@ -49,7 +61,7 @@ const dependencyLine = (torchRecord: TorchRecord): string => {
     return `${ICONS.BOX} Dependency install skipped (rebuild disabled)`;
   }
   return torchRecord.dependencyInstall
-    ? `${ICONS.BOX} Dependencies freshly installed`
+    ? `${ICONS.BOX} Dependencies ${done(torchRecord, "freshly installed")}`
     : `${ICONS.FAIL} Failed to install dependencies`;
 };
 
@@ -64,7 +76,7 @@ const dockerLines = (torchRecord: TorchRecord): string[] => {
     return [`${ICONS.FAIL} Failed to remove Docker containers`];
   }
 
-  const removed = `${ICONS.DOCKER} Docker containers, images and volumes removed`;
+  const removed = `${ICONS.DOCKER} Docker containers, images and volumes ${done(torchRecord, "removed")}`;
   if (torchRecord.rebuild === false) {
     return [
       removed,
@@ -75,10 +87,10 @@ const dockerLines = (torchRecord: TorchRecord): string[] => {
   return [
     removed,
     torchRecord.dockerRebuild
-      ? `${ICONS.DOCKER} Docker containers rebuilt from scratch`
+      ? `${ICONS.DOCKER} Docker containers ${done(torchRecord, "rebuilt from scratch")}`
       : `${ICONS.FAIL} Failed to rebuild Docker containers`,
     torchRecord.dockerLaunch && torchRecord.dockerRebuild
-      ? `${ICONS.ROCKET} Services running in detached mode`
+      ? `${ICONS.ROCKET} Services ${done(torchRecord, "running in detached mode")}`
       : `${ICONS.FAIL} Failed to start Docker containers`,
   ];
 };
@@ -96,10 +108,9 @@ const statusMessage = (torchRecord: TorchRecord) => {
   const failed = torchFailed(torchRecord);
 
   const packageManagerCache = torchRecord.packageManagerClean
-    ? `${ICONS.CLEAN} Package manager cache cleaned`
+    ? `${ICONS.CLEAN} Package manager cache ${done(torchRecord, "cleaned")}`
     : `${ICONS.WARN} Package manager cache not cleaned`;
 
-  console.log("");
   printBox(
     [
       titleLine(torchRecord, failed),

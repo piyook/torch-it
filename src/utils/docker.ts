@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import { outputToConsole } from "./ui";
 import { hasCmd, run } from "./system";
-import { COLOURS } from "../constants/constants";
+import { ICONS } from "../constants/constants";
 import type { TorchRcConfig, TorchRecord } from "../types";
 
 const COMPOSE_FILES = [
@@ -121,8 +121,9 @@ function dockerRebuild(torchRcConfig: Required<TorchRcConfig>) {
     "Building Docker resources (this may take a while...)...",
     "step",
   );
-  console.log(
-    `   ${COLOURS.YELLOW("⏳ Please be patient - pulling fresh images and building...")}`,
+  outputToConsole(
+    `${ICONS.WAIT} Please be patient - pulling fresh images and building...`,
+    "info",
   );
   if (isDryRun) {
     outputToConsole(

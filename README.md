@@ -115,6 +115,22 @@ torch-it --config
 
 Displays all active settings, every cleanup target, custom paths, protected paths, and Docker settings. Useful for verifying your setup before running. Command line overrides are included, so `torch-it --config --protectedPaths=dist` shows what that run would do.
 
+### Output
+
+At a terminal, `torch-it` uses colour, emoji and boxes. When its output is piped, redirected or captured (CI, scripts, AI agents), it switches to plain text on its own: no colour, emoji, banner or boxes, and one prefix per kind of line.
+
+| Line starts with | Meaning | Goes to |
+|------------------|---------|---------|
+| `> ` | A step is starting | stdout |
+| `ok: ` | Something succeeded | stdout |
+| `warning: ` | Something was skipped or needs a look | stderr |
+| `error: ` | Something failed | stderr |
+| anything else | Information, and the summary at the end | stdout |
+
+- `--plain` forces plain text at a terminal.
+- `--quiet` prints only warnings, errors, the paths a dry run would remove and the final summary, and hides the progress output of the install and Docker commands. The plan you are asked to confirm is still shown.
+- Set the `NO_COLOR` environment variable to drop colour and keep everything else.
+
 ### Exit codes
 
 | Code | Meaning |
@@ -173,11 +189,13 @@ List options take comma-separated paths. A JSON array works too, but most shells
 
 | Flag | Description |
 |------|-------------|
-| `--help` | Show help and available options |
+| `--help`, `-h` | Show help and available options |
 | `--version`, `-v` | Show version and exit |
 | `--config` | Show current configuration and exit |
 | `--test` | Dry run — preview changes without executing |
 | `--yes`, `-y` | Skip confirmation prompt |
+| `--quiet`, `-q` | Print only warnings, errors and the final summary |
+| `--plain` | No colour, emoji, banner or boxes. Automatic when output is not a terminal |
 | `--customPaths=a,b` | Extra paths to delete |
 | `--protectedPaths=a,b` | Paths to preserve |
 | `--dockerMode=true\|false` | Enable/disable Docker steps |
@@ -241,7 +259,7 @@ torch-it --test    # preview: nothing is deleted, nothing is asked
 torch-it --yes     # run it, once the list has been checked
 ```
 
-`torch-it` has no machine-readable output. Scripts should rely on the exit code.
+Captured output is plain text with a fixed prefix per line (see [Output](#output)), and `--quiet` cuts it down to warnings, errors and the summary. Scripts should rely on the exit code first.
 
 ---
 
@@ -285,6 +303,7 @@ Version 3 closes several ways a run could delete more than intended. If you used
 | Docker mode needs a Compose file; a `Dockerfile` alone is skipped. `compose.yaml` and `compose.yml` are now recognised | Nothing |
 | `*.log`, `*.tgz` and `*.tar.gz` match those extensions only. Before, `*.log` also caught root files such as `catalog.json` | Nothing |
 | List flags take comma-separated paths: `--customPaths=temp,logs` | The quoted JSON form still works |
+| Output that is not going to a terminal is plain text, and warnings and errors go to stderr | Update anything that matched the old emoji or read errors from stdout |
 
 ---
 
