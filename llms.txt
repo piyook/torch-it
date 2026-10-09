@@ -1,0 +1,157 @@
+# torch-it
+
+> A Node.js CLI that deletes a project's build output, caches and `node_modules`, clears the package manager cache, then reinstalls dependencies. Optionally tears down and rebuilds Docker Compose services. Describes torch-it 3.0.0 (`torch-it --version`). This file is the reference for AI agents and scripts; `README.md` is the human guide. `torch-it --help` prints a short version of the same rules.
+
+## What it does and does not do
+
+- Works on the current directory only. Run it from the project root. It does not descend into workspace packages: targets are paths relative to where it is run.
+- The directory must hold a `package.json`, `yarn.lock`, `pnpm-lock.yaml` or `npm-shrinkwrap.json`. Otherwise it exits `1` and changes nothing.
+- Deletes with a recursive force remove. Nothing goes to a recycle bin. Files that are not in git are gone for good.
+- `node_modules` is always a target, so a run with `--rebuild=false` leaves the project without dependencies until they are installed again.
+- Clears the package manager's cache, and that cache is machine-wide, not per project (`npm cache clean --force`, `yarn cache clean` or `pnpm store prune`). Later installs in every project on the machine download again.
+- With Docker mode on, `docker compose down --rmi all --volumes` removes the project's containers, images and volumes. Data held in those volumes, such as a development database, is lost.
+- It never touches git, never edits source files and never changes `package.json` or lockfiles itself (the install step may update a lockfile, as any install can).
+
+## The safe way to run it (agents and scripts)
+
+1. Preview with `--test`: every path that would be removed and every command that would run is printed. Nothing is deleted and nothing is asked.
+2. Show the user the list and get their agreement. Point out anything that is not obviously build output.
+3. Run the same command with `--yes` in place of `--test`.
+
+```bash
+torch-it --test    # dry run, exit 0
+torch-it --yes     # the real run
+```
+
+Without `--yes`, torch-it shows the plan and asks "Continue? Type Yes or No (y/n)" on a terminal. With no terminal (an agent's shell, CI, a pipe) it deletes nothing, prints an error and exits `1`. Do not pipe `y` into the prompt: use `--yes`.
+
+To add or protect paths for one run, pass them to both commands:
+
+```bash
+torch-it --test --protectedPaths=dist,uploads
+torch-it --yes  --protectedPaths=dist,uploads
+```
+
+A list given on the command line REPLACES the list of the same name in `torchrc.json`; the two are not merged. `--protectedPaths=dist` drops every path the file protects. Read `torchrc.json` first and repeat its entries in the flag, or put the new path in the file.
+
+## Options
+
+| Option | Effect |
+|---|---|
+| `--test` | Dry run. Lists what would be removed and run, changes nothing, never prompts |
+| `--yes`, `-y` | Run without the confirmation prompt |
+| `--config` | Print the resolved settings and the targets that exist, then exit. Includes any overrides passed with it |
+| `--help` | Usage |
+| `--version`, `-v` | `torch-it v<version>` |
+| `--protectedPaths=a,b` | Paths to keep |
+| `--customPaths=a,b` | Extra paths to delete |
+| `--rebuild=true\|false` | `false` skips the dependency install and the Docker rebuild. Cleanup still runs. Default `true` |
+| `--dockerMode=true\|false` | Turn the Docker Compose steps on or off. Default `false` |
+| `--logfile=true\|false` | Write the run's output to `torch-it.log` in the project root. Default `false` |
+
+- A boolean option with no value means `true`: `--logfile` is `--logfile=true`.
+- A list is comma-separated: `--customPaths=temp,logs`. A JSON array also works but must be quoted so the shell keeps the inner quotes: `'--customPaths=["temp","logs"]'`. A path that contains a comma needs the JSON form.
+- Any other argument, and any value of the wrong type, is an error: torch-it prints each problem and exits `1` before deleting anything.
+- `--help` and `--version` work in any directory and ignore every other argument. `--config` works in any directory but still rejects invalid options.
+
+## torchrc.json
+
+Optional file in the project root. The command line overrides it, option by option, and it overrides the defaults. A list option on the command line replaces the file's list whole.
+
+```json
+{
+  "customPaths": ["apps/web/.next", "services/api/tmp"],
+  "protectedPaths": ["important-data", "dist/keep.json"],
+  "dockerMode": false,
+  "rebuild": true,
+  "logfile": false
+}
+```
+
+- Keys: `customPaths`, `protectedPaths` (arrays of strings), `dockerMode`, `rebuild`, `logfile` (booleans). `customDirs` and `customFiles` are accepted and mean the same as `customPaths`.
+- Invalid JSON, an unknown key or a value of the wrong type stops the run with exit `1`. Nothing is deleted.
+- Paths are relative to the project root. `dist`, `dist/`, `./dist` and `dist\` are the same path.
+
+## What gets deleted
+
+- **Default targets**: about 70 fixed paths, deleted where they exist. They include `node_modules`, `dist`, `build`, `out`, `coverage`, `tmp`, `temp`, `.next`, `.nuxt`, `.vite`, `.cache`, `.turbo`, `android/build` and `ios/Pods`. `README.md` has the full list, and `torch-it --config` shows the ones present in this project.
+- **Root file patterns**: `*.log`, `*.tgz`, `*.tar.gz` and `tsconfig.tsbuildinfo`. The `*` patterns match files in the project root only, never directories and never files in subdirectories.
+- **Custom paths**: whatever `customPaths` lists.
+- **Not default targets**: `lib`, `es`, `cjs` and `umd`. They often hold source.
+
+`build`, `out`, `tmp` and `temp` are default targets. In some projects those names hold source or data: check the `--test` output and protect them if so.
+
+## How protection works
+
+- A protected path is never removed, nor is anything inside it.
+- A protected path inside a target is kept and the rest of the target is removed: with `protectedPaths: ["dist/keep.json"]`, `dist/keep.json` stays and the other contents of `dist` go.
+- Matching is on whole path segments. Protecting `dist` does not protect `distribution`.
+- Protection wins over `customPaths` when a path is in both.
+- While `logfile` is on, `torch-it.log` is kept by the `*.log` sweep.
+
+## Order of work
+
+1. Docker teardown, if Docker mode is on.
+2. Default targets, then root file patterns, then custom paths.
+3. Package manager cache clean.
+4. Dependency install, unless `rebuild` is `false`.
+5. Docker rebuild and start, if the teardown ran and `rebuild` is not `false`.
+
+**Package manager**: the first of pnpm, yarn, npm whose lockfile (`pnpm-lock.yaml`, `yarn.lock`, `package-lock.json`) is present and whose command is on the PATH. With no lockfile: the first of npm, yarn, pnpm that is installed. It runs `<pm> install`, never `npm ci`.
+
+**Docker mode** runs only when a Compose file is in the project root: `compose.yaml`, `compose.yml`, `docker-compose.yaml` or `docker-compose.yml`. A `Dockerfile` alone is not enough. It uses the `docker compose` plugin: `down --rmi all --volumes`, then `build --pull --no-cache`, then `up -d`. If Docker is not installed or the daemon is not running, the Docker steps are skipped with a warning and the rest of the run continues. A dry run in Docker mode still runs the read-only `docker info` and `docker compose ps`.
+
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | The run finished, a dry run, `--config`, `--help` or `--version` was shown, or the user answered the prompt with anything but `y`/`yes` |
+| `1` | Invalid option or `torchrc.json`, not a Node.js project, no terminal and no `--yes`, dependency install failed, or a Docker teardown, rebuild or start failed |
+
+- Exit `0` does not mean every path was removed. A path that could not be deleted (locked or in use) prints `Failed to remove <path>` and the run carries on. The same holds for a failed cache clean. Search the output for `Failed to remove` when it matters.
+- The summary box at the end starts with `PROJECT SUCCESSFULLY TORCHED`, `TORCHED WITH ERRORS` or `DRY RUN COMPLETE - NOTHING WAS CHANGED`.
+- Output is for people: ANSI colours and emoji, no JSON or porcelain form. Rely on the exit code and on the phrases quoted here, not on layout. With `--logfile=true` the same text is written to `torch-it.log` without colour codes.
+
+## Recipes
+
+See what a run would do:
+
+```bash
+torch-it --test
+```
+
+Clean and reinstall without a prompt:
+
+```bash
+torch-it --yes
+```
+
+Clean only, no reinstall and no Docker rebuild:
+
+```bash
+torch-it --yes --rebuild=false
+```
+
+Keep the build output, reset everything else (only if `torchrc.json` has no `protectedPaths` of its own, since the flag would replace them):
+
+```bash
+torch-it --yes --protectedPaths=dist,build
+```
+
+Full reset including Docker Compose services:
+
+```bash
+torch-it --test --dockerMode=true
+torch-it --yes --dockerMode=true
+```
+
+Without a global install: `npx torch-it --test`.
+
+## Do not
+
+- Do not run `torch-it --yes` before the user has seen the `--test` output for the same options.
+- Do not turn on Docker mode unless the user asked for it: the volumes it removes can hold data that exists nowhere else.
+- Do not run it in a directory that is not the project root. From a subdirectory it works on that subdirectory.
+- Do not pass `--protectedPaths` or `--customPaths` without reading `torchrc.json`: the flag replaces the file's list.
+- Do not assume `build`, `out`, `tmp` or `temp` are disposable. Check whether they are tracked in git first (`git ls-files build`).
+- Do not reach for it when a plain reinstall would do and the user is on a slow or metered connection: the cache clean makes every later install download again.
