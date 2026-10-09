@@ -21,14 +21,20 @@ import {
   dockerLaunch,
 } from "../../src/utils/docker";
 import { DEFAULT_TORCH_RC_CONFIG } from "../../src/types";
+import { hasCmd, run } from "../../src/utils/system";
+import { outputToConsole } from "../../src/utils/ui";
 
 const mockedExistsSync = vi.mocked(fs.existsSync);
+const mockedHasCmd = vi.mocked(hasCmd);
+const mockedRun = vi.mocked(run);
+const mockedOutputToConsole = vi.mocked(outputToConsole);
 
 const baseTorchRc = DEFAULT_TORCH_RC_CONFIG;
 
 describe("dockerCleanup", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
+    delete process.env.TORCH_DRY_RUN;
   });
 
   it("skips Docker operations when dockerMode is false", () => {
@@ -41,15 +47,73 @@ describe("dockerCleanup", () => {
     expect(result).toBe("NO_DOCKER");
   });
 
-  it("proceeds with Docker operations when dockerMode is true", () => {
+  it("reports Docker as unavailable when dockerMode is on but Docker is not installed", () => {
     mockedExistsSync.mockImplementation(
       (target) => target === "docker-compose.yml",
     );
+    mockedHasCmd.mockReturnValue(false);
 
     const result = dockerCleanup({ ...baseTorchRc, dockerMode: true });
 
-    // Should proceed to check for Docker files, etc.
-    expect(result).toBe("NO_DOCKER"); // Since we don't have Docker running in test
+    expect(result).toBe("DOCKER_UNAVAILABLE");
+  });
+
+  it("reports Docker as unavailable when the daemon is not running", () => {
+    mockedExistsSync.mockImplementation(
+      (target) => target === "docker-compose.yml",
+    );
+    mockedHasCmd.mockReturnValue(true);
+    mockedRun.mockReturnValue(false);
+
+    const result = dockerCleanup({ ...baseTorchRc, dockerMode: true });
+
+    expect(result).toBe("DOCKER_UNAVAILABLE");
+  });
+
+  it("skips Docker operations when there is a Dockerfile but no Compose file", () => {
+    mockedExistsSync.mockImplementation((target) => target === "Dockerfile");
+
+    const result = dockerCleanup({ ...baseTorchRc, dockerMode: true });
+
+    expect(result).toBe("NO_DOCKER");
+    expect(mockedOutputToConsole).toHaveBeenCalledWith(
+      expect.stringContaining("no Compose file"),
+      "info",
+    );
+    expect(mockedHasCmd).not.toHaveBeenCalled();
+  });
+
+  it("tears down services for a compose.yaml project", () => {
+    mockedExistsSync.mockImplementation((target) => target === "compose.yaml");
+    mockedHasCmd.mockReturnValue(true);
+    mockedRun.mockReturnValue(true);
+
+    const result = dockerCleanup({ ...baseTorchRc, dockerMode: true });
+
+    expect(result).toBe("OK");
+    expect(mockedRun).toHaveBeenCalledWith("docker compose down --rmi all");
+  });
+
+  it("removes volumes only when dockerVolumes is on", () => {
+    mockedExistsSync.mockImplementation((target) => target === "compose.yaml");
+    mockedHasCmd.mockReturnValue(true);
+    mockedRun.mockReturnValue(true);
+
+    dockerCleanup({ ...baseTorchRc, dockerMode: true, dockerVolumes: true });
+
+    expect(mockedRun).toHaveBeenCalledWith(
+      "docker compose down --rmi all --volumes",
+    );
+  });
+
+  it("reports a failure when docker compose cannot read the project", () => {
+    mockedExistsSync.mockImplementation((target) => target === "compose.yml");
+    mockedHasCmd.mockReturnValue(true);
+    mockedRun.mockImplementation((cmd) => cmd === "docker info");
+
+    const result = dockerCleanup({ ...baseTorchRc, dockerMode: true });
+
+    expect(result).toBe("DOCKER_FAIL");
   });
 });
 

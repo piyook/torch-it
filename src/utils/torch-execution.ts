@@ -1,24 +1,55 @@
 import { dockerCleanup, dockerRebuild, dockerLaunch } from "./docker";
-import { outputToConsole, printRisingFromAshesBanner } from "./ui";
-import { ICONS } from "../constants/constants";
+import { outputToConsole, printRisingFromAshesBanner, showInFull } from "./ui";
+import { EXIT, ICONS } from "../constants/constants";
 import { cleanupBuildsAndCaches, cleanupPackageManagerCaches } from "./cleanup";
 import { installDependencies } from "./dependency";
+import { detectPackageManager } from "./package-managers";
 import type { TorchRecord } from "../types";
 import { DEFAULT_TORCH_RC_CONFIG } from "../types";
 import { statusMessage } from "./status";
 import { renderTorchConfigDisplay } from "./config-display";
 import { promptYesNo } from "./prompt";
+import { exitWithError, isJsonMode } from "./json-output";
 
-export async function executeTorchWorkflow(
+// Never delete unprompted: without a terminal to ask on, --yes is required.
+// Called before anything is written, so a refused run leaves no trace.
+export function ensureRunCanBeConfirmed(options: {
+  assumeYes?: boolean;
+}): void {
+  const needsPrompt =
+    options.assumeYes !== true && process.env.TORCH_DRY_RUN !== "1";
+  if (!needsPrompt) {
+    return;
+  }
+
+  // A prompt on stdout would break the one JSON document --json promises
+  if (isJsonMode()) {
+    outputToConsole("--json never prompts: add --yes or --test.", "fail");
+    exitWithError();
+  }
+
+  if (process.stdin.isTTY === true) {
+    return;
+  }
+
+  outputToConsole(
+    "No interactive terminal to confirm on. Re-run with --yes to skip the prompt, or --test for a dry run.",
+    "fail",
+  );
+  if (process.env.MSYSTEM) {
+    outputToConsole(
+      "In Git Bash, 'winpty torch-it' gives it a terminal to ask on.",
+      "info",
+    );
+  }
+  exitWithError();
+}
+
+async function confirmDestructiveRun(
   torchRcConfig: typeof DEFAULT_TORCH_RC_CONFIG,
-  options: { assumeYes?: boolean } = {},
-): Promise<TorchRecord> {
-  const skipDestructiveConfirmation =
-    options.assumeYes === true ||
-    process.env.TORCH_DRY_RUN === "1" ||
-    process.stdin.isTTY !== true;
-
-  if (!skipDestructiveConfirmation) {
+): Promise<void> {
+  // The plan being agreed to is shown even with --quiet
+  showInFull(() => {
     outputToConsole(
       "\nReview the cleanup below. Matching paths and Docker actions (if enabled) will run next.",
       "warn",
@@ -28,11 +59,48 @@ export async function executeTorchWorkflow(
       "\nThese targets will be removed where they exist. Package caches may be cleared and dependencies reinstalled per your settings.",
       "warn",
     );
-    const proceed = await promptYesNo("Continue? Type Yes or No (y/n): ");
-    if (!proceed) {
-      outputToConsole("Aborted.", "info");
-      process.exit(0);
-    }
+  });
+  const proceed = await promptYesNo("Continue? Type Yes or No (y/n): ");
+  if (!proceed) {
+    outputToConsole("Aborted. Nothing was changed.", "info");
+    process.exit(EXIT.CANCELLED);
+  }
+}
+
+function rebuildDocker(
+  torchRcConfig: typeof DEFAULT_TORCH_RC_CONFIG,
+  torchRecord: TorchRecord,
+): void {
+  if (
+    torchRecord.dockerClean === "NO_DOCKER" ||
+    torchRecord.dockerClean === "DOCKER_UNAVAILABLE"
+  ) {
+    return;
+  }
+
+  if (torchRcConfig.rebuild === false) {
+    outputToConsole("Rebuild disabled - skipping Docker rebuild", "info");
+    return;
+  }
+
+  outputToConsole(`${ICONS.BUILD} DOCKER REBUILD`, "step");
+  torchRecord.dockerRebuild = dockerRebuild(torchRcConfig);
+
+  if (torchRecord.dockerRebuild) {
+    outputToConsole(`${ICONS.ROCKET} LAUNCH`, "step");
+    torchRecord.dockerLaunch = dockerLaunch(torchRcConfig);
+  }
+}
+
+export async function executeTorchWorkflow(
+  torchRcConfig: typeof DEFAULT_TORCH_RC_CONFIG,
+  options: { assumeYes?: boolean } = {},
+): Promise<TorchRecord> {
+  const isDryRun = process.env.TORCH_DRY_RUN === "1";
+
+  ensureRunCanBeConfirmed(options);
+  if (options.assumeYes !== true && !isDryRun) {
+    await confirmDestructiveRun(torchRcConfig);
   }
 
   const torchRecord: TorchRecord = {
@@ -43,6 +111,10 @@ export async function executeTorchWorkflow(
     dockerRebuild: false,
     dockerLaunch: false,
     logfile: torchRcConfig.logfile,
+    rebuild: torchRcConfig.rebuild,
+    dryRun: isDryRun,
+    cacheClean: torchRcConfig.cacheClean,
+    dockerVolumes: torchRcConfig.dockerVolumes,
   };
 
   // --- Docker Cleanup ---
@@ -51,45 +123,42 @@ export async function executeTorchWorkflow(
 
   // --- Build/Cache Cleanup ---
   outputToConsole(`${ICONS.CLEAN} BUILD ARTIFACTS & CACHE CLEANUP`, "step");
-  torchRecord.buildAndCacheClean = cleanupBuildsAndCaches();
+  const cleanup = cleanupBuildsAndCaches(torchRcConfig);
+  torchRecord.buildAndCacheClean = cleanup.cleaned;
+  torchRecord.cleanupFailures = cleanup.failed;
+  torchRecord.trackedKept = cleanup.tracked;
+  torchRecord.paths = cleanup.paths;
+
+  // Detected once, after the cleanup, so both steps below use the same one
+  const packageManager = detectPackageManager();
+  torchRecord.packageManager = packageManager;
 
   // --- Package Manager Cache Cleanup ---
-  outputToConsole("Cleaning package manager caches...", "step");
-  torchRecord.packageManagerClean = cleanupPackageManagerCaches();
+  if (torchRcConfig.cacheClean !== false) {
+    outputToConsole("Cleaning package manager caches...", "step");
+    torchRecord.packageManagerClean =
+      cleanupPackageManagerCaches(packageManager);
+  } else {
+    outputToConsole(
+      "Cache clean disabled - leaving the package manager cache alone",
+      "info",
+    );
+  }
 
   // --- Dependency Installation ---
   if (torchRcConfig.rebuild !== false) {
     printRisingFromAshesBanner();
     outputToConsole(`${ICONS.BUILD} DEPENDENCY INSTALLATION`, "step");
-    torchRecord.dependencyInstall = installDependencies();
+    torchRecord.dependencyInstall = installDependencies(packageManager);
   } else {
     outputToConsole(
       "Rebuild disabled - skipping dependency installation",
       "info",
     );
-    torchRecord.dependencyInstall = false;
   }
 
-  // --- Docker Rebuild ---
-  if (
-    torchRecord.dockerClean !== "NO_DOCKER" &&
-    torchRcConfig.rebuild !== false
-  ) {
-    outputToConsole(`${ICONS.BUILD} DOCKER REBUILD`, "step");
-    torchRecord.dockerRebuild = dockerRebuild(torchRcConfig);
-  } else if (
-    torchRecord.dockerClean !== "NO_DOCKER" &&
-    torchRcConfig.rebuild === false
-  ) {
-    outputToConsole("Rebuild disabled - skipping Docker rebuild", "info");
-    torchRecord.dockerRebuild = false;
-  }
-
-  // --- Docker Launch ---
-  if (torchRecord.dockerRebuild) {
-    torchRecord.dockerLaunch = dockerLaunch(torchRcConfig);
-    outputToConsole(`${ICONS.ROCKET} LAUNCH`, "step");
-  }
+  // --- Docker Rebuild & Launch ---
+  rebuildDocker(torchRcConfig, torchRecord);
 
   // --- Final Success Message ---
   statusMessage(torchRecord);

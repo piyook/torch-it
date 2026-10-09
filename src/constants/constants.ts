@@ -1,5 +1,11 @@
+let colourEnabled = true;
+
+export const setColourEnabled = (enabled: boolean): void => {
+  colourEnabled = enabled;
+};
+
 const wrapAnsi = (start: string, end: string) => (text: string) =>
-  `\u001b[${start}m${text}\u001b[${end}m`;
+  colourEnabled ? `\u001b[${start}m${text}\u001b[${end}m` : text;
 
 export const COLOURS = {
   BOLD: wrapAnsi("1", "22"),
@@ -8,7 +14,15 @@ export const COLOURS = {
   RED: wrapAnsi("31", "39"),
   YELLOW: wrapAnsi("33", "39"),
   PURPLE: wrapAnsi("35", "39"),
-  RESET: (text: string) => `\u001b[0m${text}`,
+  RESET: (text: string) => (colourEnabled ? `\u001b[0m${text}` : text),
+} as const;
+
+// 1 always means nothing was changed; 2 means the run went ahead and part of it failed
+export const EXIT = {
+  OK: 0,
+  ERROR: 1,
+  STEP_FAILED: 2,
+  CANCELLED: 3,
 } as const;
 
 export const ICONS = {
@@ -27,4 +41,5 @@ export const ICONS = {
   BOX: "📦",
   CLIPBOARD: "📋",
   DOCKER: "🐳",
+  WAIT: "⏳",
 } as const;

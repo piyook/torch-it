@@ -1,20 +1,134 @@
 import * as fs from "fs";
 import { outputToConsole } from "./ui";
+import { getCustomPaths } from "./torchrc";
 import {
-  BUILD_DIRS,
-  CACHE_DIRS,
-  CUSTOM_DIRS,
-  FILE_PATTERNS,
-} from "../constants/config";
-import { getTorchRcConfigFromFile } from "./cleanup";
-import { hasCmd } from "./system";
+  describeTrackedLocations,
+  getCleanupPlan,
+  getRunProtection,
+} from "./targets";
+import type { CleanupPlan } from "./targets";
+import {
+  createProtectionIndex,
+  existingPaths,
+  filterProtectedTargets,
+  matchRootFiles,
+} from "./cleanup-helpers";
+import { DOCKER_FILES } from "./docker";
+import {
+  describePackageManager,
+  detectPackageManager,
+} from "./package-managers";
 import type { TorchRcConfig } from "../types";
 
-function customPathsFromConfig(config: Required<TorchRcConfig>): string[] {
-  return [...config.customPaths, ...config.customDirs, ...config.customFiles]
-    .filter((entry): entry is string => typeof entry === "string")
-    .map((entry) => entry.trim())
-    .filter((entry) => entry.length > 0);
+const info = (message: string) => outputToConsole(message, "info");
+
+const describePath = (target: string): string => {
+  if (!fs.existsSync(target)) return "(not found)";
+  return fs.statSync(target).isDirectory() ? "(DIR)" : "(FILE)";
+};
+
+function showPackageManagers(): void {
+  info("\nPACKAGE MANAGER:");
+  const packageManager = detectPackageManager();
+
+  if (packageManager) {
+    info(`  ${describePackageManager(packageManager)}`);
+  } else {
+    outputToConsole("  No package manager detected", "warn");
+  }
+}
+
+function showDockerFiles(): void {
+  info("\nDOCKER DETECTION:");
+  const foundDockerFiles = DOCKER_FILES.filter((file) => fs.existsSync(file));
+  if (foundDockerFiles.length > 0) {
+    foundDockerFiles.forEach((file) => info(`  ${file}`));
+  } else {
+    info("  No Docker configuration found");
+  }
+}
+
+function showGlobPattern(pattern: string, protectedPaths: string[]): void {
+  try {
+    const files = filterProtectedTargets(
+      matchRootFiles(pattern),
+      protectedPaths,
+    );
+    if (files.length === 0) {
+      info(`    ${pattern} (no matches)`);
+      return;
+    }
+    info(
+      `    ${pattern} (matches ${files.length} file${files.length === 1 ? "" : "s"}):`,
+    );
+    files.forEach((file) => info(`      ${file} (FILE)`));
+  } catch (error) {
+    outputToConsole(`    ${pattern} (error: ${error})`, "warn");
+  }
+}
+
+function showTargetList(
+  title: string,
+  targets: string[],
+  protectedPaths: string[],
+): void {
+  if (targets.length === 0) return;
+  info(title);
+  const keptOnDisk = createProtectionIndex(existingPaths(protectedPaths));
+  targets.forEach((target) => {
+    const note = keptOnDisk.holds(target) ? " - protected contents kept" : "";
+    info(`    ${target} ${describePath(target)}${note}`);
+  });
+}
+
+function showDeletionTargets(
+  plan: CleanupPlan,
+  protectedPaths: string[],
+): void {
+  info("\nFILES/DIRECTORIES THAT WILL BE DELETED:");
+
+  const existingUnprotected = (targets: string[]) =>
+    filterProtectedTargets(targets, protectedPaths).filter((target) =>
+      fs.existsSync(target),
+    );
+
+  // Separate regular targets from glob patterns
+  const regularTargets = existingUnprotected([
+    ...plan.defaultTargets,
+    ...plan.filePatterns.filter((pattern) => !pattern.includes("*")),
+  ]);
+  const globPatterns = plan.filePatterns.filter((pattern) =>
+    pattern.includes("*"),
+  );
+  const customTargets = existingUnprotected(plan.customTargets);
+
+  showTargetList("  Default targets:", regularTargets, protectedPaths);
+
+  if (globPatterns.length > 0) {
+    info("  Glob patterns:");
+    globPatterns.forEach((pattern) => showGlobPattern(pattern, protectedPaths));
+  }
+
+  showTargetList(
+    plan.onlyMode
+      ? "  Only these (nothing else is removed):"
+      : "  Custom targets:",
+    customTargets,
+    protectedPaths,
+  );
+
+  if (
+    regularTargets.length === 0 &&
+    globPatterns.length === 0 &&
+    customTargets.length === 0
+  ) {
+    info("  No targets found (nothing to delete)");
+  }
+}
+
+function showPathList(title: string, paths: string[]): void {
+  info(title);
+  paths.forEach((target) => info(`  ${target} ${describePath(target)}`));
 }
 
 export function renderTorchConfigDisplay(
@@ -22,187 +136,53 @@ export function renderTorchConfigDisplay(
   options?: { includeHelpFooter?: boolean },
 ): void {
   const includeHelpFooter = options?.includeHelpFooter !== false;
-  const customPaths = customPathsFromConfig(config);
+  const customPaths = getCustomPaths(config);
   const protectedPaths = config.protectedPaths;
 
-  outputToConsole("=".repeat(60), "info");
-  outputToConsole("TORCH-IT CONFIGURATION", "info");
-  outputToConsole("=".repeat(60), "info");
+  info("=".repeat(60));
+  info("TORCH-IT CONFIGURATION");
+  info("=".repeat(60));
 
-  // Basic Settings
-  outputToConsole("\nBASIC SETTINGS:", "info");
-  outputToConsole(`  Docker Mode: ${config.dockerMode}`, "info");
-  outputToConsole(`  Rebuild: ${config.rebuild}`, "info");
-  outputToConsole(`  Logfile: ${config.logfile}`, "info");
+  info("\nBASIC SETTINGS:");
+  info(`  Docker Mode: ${config.dockerMode}`);
+  info(`  Docker Volumes: ${config.dockerVolumes}`);
+  info(`  Cache Clean: ${config.cacheClean}`);
+  info(`  Allow Tracked: ${config.allowTracked}`);
+  info(`  Rebuild: ${config.rebuild}`);
+  info(`  Logfile: ${config.logfile}`);
 
-  // Package Manager Detection
-  outputToConsole("\nPACKAGE MANAGER DETECTION:", "info");
-  const packageManagers = [];
-  if (fs.existsSync("package-lock.json") && hasCmd("npm")) {
-    packageManagers.push("npm (package-lock.json)");
-  } else if (hasCmd("npm")) {
-    packageManagers.push("npm (fallback)");
+  showPackageManagers();
+  showDockerFiles();
+  const plan = getCleanupPlan(config);
+  const protection = getRunProtection(config, plan);
+  showDeletionTargets(plan, protection.protectedPaths);
+  if (protection.trackedFiles.length > 0) {
+    info(
+      `  Kept: ${protection.trackedFiles.length} file(s) tracked in git, under: ${describeTrackedLocations(protection.trackedFiles)}`,
+    );
   }
 
-  if (fs.existsSync("yarn.lock") && hasCmd("yarn")) {
-    packageManagers.push("yarn (yarn.lock)");
-  } else if (hasCmd("yarn")) {
-    packageManagers.push("yarn (fallback)");
-  }
-
-  if (fs.existsSync("pnpm-lock.yaml") && hasCmd("pnpm")) {
-    packageManagers.push("pnpm (pnpm-lock.yaml)");
-  } else if (hasCmd("pnpm")) {
-    packageManagers.push("pnpm (fallback)");
-  }
-
-  if (packageManagers.length > 0) {
-    packageManagers.forEach((pm) => outputToConsole(`  ${pm}`, "info"));
-  } else {
-    outputToConsole("  No package manager detected", "warn");
-  }
-
-  // Docker Detection
-  outputToConsole("\nDOCKER DETECTION:", "info");
-  const dockerFiles = [
-    "Dockerfile",
-    "docker-compose.yml",
-    "docker-compose.yaml",
-  ];
-  const foundDockerFiles = dockerFiles.filter((file) => fs.existsSync(file));
-  if (foundDockerFiles.length > 0) {
-    foundDockerFiles.forEach((file) => outputToConsole(`  ${file}`, "info"));
-  } else {
-    outputToConsole("  No Docker configuration found", "info");
-  }
-
-  // Files to be deleted
-  outputToConsole("\nFILES/DIRECTORIES THAT WILL BE DELETED:", "info");
-
-  const defaultTargets = [
-    ...new Set([
-      ...BUILD_DIRS,
-      ...CACHE_DIRS,
-      ...CUSTOM_DIRS,
-      ...FILE_PATTERNS,
-    ]),
-  ];
-
-  // Filter out protected paths from default targets
-  const filteredDefaultTargets = defaultTargets.filter(
-    (target) =>
-      !protectedPaths.some(
-        (protectedPath) =>
-          target === protectedPath || target.startsWith(protectedPath + "/"),
-      ),
-  );
-
-  // Filter out protected paths from custom targets
-  const filteredCustomTargets = customPaths.filter(
-    (target) =>
-      !protectedPaths.some(
-        (protectedPath) =>
-          target === protectedPath || target.startsWith(protectedPath + "/"),
-      ),
-  );
-
-  // Separate regular targets from glob patterns
-  const regularTargets = filteredDefaultTargets.filter(
-    (target: string) => !target.includes("*") && fs.existsSync(target),
-  );
-  const globPatterns = filteredDefaultTargets.filter((target: string) =>
-    target.includes("*"),
-  );
-
-  const existingCustomTargets = filteredCustomTargets.filter((target: string) =>
-    fs.existsSync(target),
-  );
-
-  if (regularTargets.length > 0) {
-    outputToConsole("  Default targets:", "info");
-    regularTargets.forEach((target: string) => {
-      const type = fs.statSync(target).isDirectory() ? "DIR" : "FILE";
-      outputToConsole(`    ${target} (${type})`, "info");
-    });
-  }
-
-  // Show glob patterns and matched files
-  if (globPatterns.length > 0) {
-    outputToConsole("  Glob patterns:", "info");
-    globPatterns.forEach((pattern: string) => {
-      try {
-        const files = fs
-          .readdirSync(".", { withFileTypes: true })
-          .filter((dirent) => {
-            const name = dirent.name;
-            return name.match(pattern.replace("*", ".*"));
-          })
-          .map((dirent) => dirent.name);
-
-        if (files.length > 0) {
-          outputToConsole(
-            `    ${pattern} (matches ${files.length} file${files.length === 1 ? "" : "s"}):`,
-            "info",
-          );
-          files.forEach((file) => {
-            outputToConsole(`      ${file} (FILE)`, "info");
-          });
-        } else {
-          outputToConsole(`    ${pattern} (no matches)`, "info");
-        }
-      } catch (error) {
-        outputToConsole(`    ${pattern} (error: ${error})`, "warn");
-      }
-    });
-  }
-
-  if (existingCustomTargets.length > 0) {
-    outputToConsole("  Custom targets:", "info");
-    existingCustomTargets.forEach((target: string) => {
-      const type = fs.statSync(target).isDirectory() ? "DIR" : "FILE";
-      outputToConsole(`    ${target} (${type})`, "info");
-    });
-  }
-
-  if (
-    regularTargets.length === 0 &&
-    globPatterns.length === 0 &&
-    existingCustomTargets.length === 0
-  ) {
-    outputToConsole("  No targets found (nothing to delete)", "info");
-  }
-
-  // Protected paths
   if (protectedPaths.length > 0) {
-    outputToConsole("\nPROTECTED PATHS (will NOT be deleted):", "info");
-    protectedPaths.forEach((path: string) => {
-      const exists = fs.existsSync(path);
-      const type = exists && fs.statSync(path).isDirectory() ? "DIR" : "FILE";
-      const status = exists ? `(${type})` : "(not found)";
-      outputToConsole(`  ${path} ${status}`, "info");
-    });
+    showPathList("\nPROTECTED PATHS (will NOT be deleted):", protectedPaths);
   } else {
-    outputToConsole("\nPROTECTED PATHS: None", "info");
+    info("\nPROTECTED PATHS: None");
   }
 
-  // Custom paths from torchrc.json
   if (customPaths.length > 0) {
-    outputToConsole("\nCUSTOM PATHS:", "info");
-    customPaths.forEach((path: string) => {
-      const exists = fs.existsSync(path);
-      const type = exists && fs.statSync(path).isDirectory() ? "DIR" : "FILE";
-      const status = exists ? `(${type})` : "(not found)";
-      outputToConsole(`  ${path} ${status}`, "info");
-    });
+    showPathList("\nCUSTOM PATHS:", customPaths);
   }
 
-  outputToConsole("\n" + "=".repeat(60), "info");
+  if (config.only.length > 0) {
+    showPathList("\nONLY (replaces the default targets):", config.only);
+  }
+
+  info("\n" + "=".repeat(60));
   if (includeHelpFooter) {
-    outputToConsole("Use 'torch-it --help' for available options", "info");
-    outputToConsole("=".repeat(60), "info");
+    info("Use 'torch-it --help' for available options");
+    info("=".repeat(60));
   }
 }
 
-export const showConfig = () => {
-  renderTorchConfigDisplay(getTorchRcConfigFromFile());
+export const showConfig = (config: Required<TorchRcConfig>) => {
+  renderTorchConfigDisplay(config);
 };

@@ -1,6 +1,9 @@
 import fs from "fs";
 
-let fileLoggingEnabled = true;
+export const LOG_FILE = "torch-it.log";
+
+// Off until the config says otherwise, so early errors never create a log file
+let fileLoggingEnabled = false;
 
 function stripAnsiCodes(text: string): string {
   const ansiRegex = new RegExp(String.fromCharCode(27) + "\\[[0-9;]*m", "g");
@@ -15,7 +18,7 @@ export const clearLog = (): void => {
   if (!fileLoggingEnabled) {
     return;
   }
-  fs.writeFileSync("torch-it.log", "");
+  fs.writeFileSync(LOG_FILE, "");
 };
 
 export const logger = (message: string): void => {
@@ -25,5 +28,5 @@ export const logger = (message: string): void => {
   // Remove ansi codes and leading newline to make log look better
   const cleanMessage = stripAnsiCodes(message).replace(/^\n/, "");
   const timestamp = new Date().toISOString();
-  fs.appendFileSync("torch-it.log", `[${timestamp}] ${cleanMessage}\n`);
+  fs.appendFileSync(LOG_FILE, `[${timestamp}] ${cleanMessage}\n`);
 };

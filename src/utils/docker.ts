@@ -1,18 +1,46 @@
 import * as fs from "fs";
 import { outputToConsole } from "./ui";
 import { hasCmd, run } from "./system";
-import { COLOURS } from "../constants/constants";
-import type { TorchRcConfig } from "../types";
+import { ICONS } from "../constants/constants";
+import type { TorchRcConfig, TorchRecord } from "../types";
 
-function hasDockerFiles(): boolean {
-  return (
-    fs.existsSync("Dockerfile") ||
-    fs.existsSync("docker-compose.yml") ||
-    fs.existsSync("docker-compose.yaml")
-  );
+const COMPOSE_FILES = [
+  "compose.yaml",
+  "compose.yml",
+  "docker-compose.yaml",
+  "docker-compose.yml",
+];
+
+export const DOCKER_FILES = ["Dockerfile", ...COMPOSE_FILES];
+
+function hasComposeFile(): boolean {
+  return COMPOSE_FILES.some((file) => fs.existsSync(file));
 }
 
-function dockerCleanup(torchRcConfig: Required<TorchRcConfig>) {
+// Returns true when Docker is installed and its daemon is reachable
+function dockerIsReady(action: string): boolean {
+  if (!hasCmd("docker")) {
+    outputToConsole(
+      `Docker is not installed - skipping Docker ${action}`,
+      "warn",
+    );
+    return false;
+  }
+
+  if (!run("docker info", { silent: true })) {
+    outputToConsole(
+      `Docker daemon is not running - skipping Docker ${action}`,
+      "warn",
+    );
+    return false;
+  }
+
+  return true;
+}
+
+function dockerCleanup(
+  torchRcConfig: Required<TorchRcConfig>,
+): TorchRecord["dockerClean"] {
   if (torchRcConfig.dockerMode === false) {
     outputToConsole(
       "Docker mode disabled - skipping Docker operations",
@@ -22,9 +50,11 @@ function dockerCleanup(torchRcConfig: Required<TorchRcConfig>) {
   }
 
   const isDryRun = process.env.TORCH_DRY_RUN === "1";
-  if (!hasDockerFiles()) {
+  if (!hasComposeFile()) {
     outputToConsole(
-      "No Docker configuration found - skipping Docker operations",
+      fs.existsSync("Dockerfile")
+        ? "Dockerfile found but no Compose file - Docker mode needs a Compose file, skipping Docker operations"
+        : "No Docker configuration found - skipping Docker operations",
       "info",
     );
     return "NO_DOCKER";
@@ -35,46 +65,27 @@ function dockerCleanup(torchRcConfig: Required<TorchRcConfig>) {
     "info",
   );
 
-  if (!hasCmd("docker")) {
-    outputToConsole(
-      "Docker is not installed - skipping Docker cleanup",
-      "warn",
-    );
-    return "NO_DOCKER";
+  if (!dockerIsReady("cleanup")) {
+    return "DOCKER_UNAVAILABLE";
   }
 
-  if (!run("docker info", { silent: true })) {
-    outputToConsole(
-      "Docker daemon is not running - skipping Docker cleanup",
-      "warn",
-    );
-    outputToConsole(
-      "You may need to start Docker manually and run cleanup later",
-      "info",
-    );
-    return "NO_DOCKER";
-  }
   if (!run("docker compose ps", { silent: true })) {
     outputToConsole(
-      "No Docker Compose services found - skipping Docker cleanup",
-      "warn",
-    );
-    outputToConsole(
-      "This is normal if no services were previously running",
-      "info",
+      "docker compose could not read this project's Compose file - skipping Docker cleanup",
+      "fail",
     );
     return "DOCKER_FAIL";
   }
 
+  // Volumes can hold data that exists nowhere else, so they go only when asked
+  const downCommand = `docker compose down --rmi all${torchRcConfig.dockerVolumes ? " --volumes" : ""}`;
+
   if (isDryRun) {
-    outputToConsole(
-      "Dry-run: would run 'docker compose down --rmi all --volumes'",
-      "info",
-    );
+    outputToConsole(`Dry-run: would run '${downCommand}'`, "info");
     return "OK";
   }
 
-  if (run("docker compose down --rmi all --volumes")) {
+  if (run(downCommand)) {
     outputToConsole("Docker services stopped and resources cleaned", "success");
     return "OK";
   }
@@ -95,23 +106,12 @@ function dockerRebuild(torchRcConfig: Required<TorchRcConfig>) {
   }
 
   const isDryRun = process.env.TORCH_DRY_RUN === "1";
-  if (!hasDockerFiles()) {
+  if (!hasComposeFile()) {
     return false;
   }
-  if (!hasCmd("docker")) {
+  if (!dockerIsReady("rebuild")) {
     outputToConsole(
-      "Docker is not installed - skipping Docker rebuild",
-      "warn",
-    );
-    return false;
-  }
-  if (!run("docker info", { silent: true })) {
-    outputToConsole(
-      "Docker daemon is not running - skipping Docker rebuild",
-      "warn",
-    );
-    outputToConsole(
-      "Start Docker manually and run 'docker compose build --pull --no-cache' later",
+      "Run 'docker compose build --pull --no-cache' once Docker is available",
       "info",
     );
     return false;
@@ -121,8 +121,9 @@ function dockerRebuild(torchRcConfig: Required<TorchRcConfig>) {
     "Building Docker resources (this may take a while...)...",
     "step",
   );
-  console.log(
-    `   ${COLOURS.YELLOW("⏳ Please be patient - pulling fresh images and building...")}`,
+  outputToConsole(
+    `${ICONS.WAIT} Please be patient - pulling fresh images and building...`,
+    "info",
   );
   if (isDryRun) {
     outputToConsole(
@@ -133,10 +134,7 @@ function dockerRebuild(torchRcConfig: Required<TorchRcConfig>) {
   }
 
   if (!run("docker compose build --pull --no-cache")) {
-    outputToConsole(
-      "Docker build encountered issues - check torch-it.log for details",
-      "fail",
-    );
+    outputToConsole("Docker build failed - see the output above", "fail");
     return false;
   }
   return true;
@@ -155,7 +153,7 @@ function dockerLaunch(torchRcConfig: Required<TorchRcConfig>) {
   }
   if (!run("docker compose up -d")) {
     outputToConsole(
-      "Failed to start Docker services - check torch-it.log for details",
+      "Failed to start Docker services - see the output above",
       "fail",
     );
     return false;
@@ -163,4 +161,4 @@ function dockerLaunch(torchRcConfig: Required<TorchRcConfig>) {
   return true;
 }
 
-export { hasDockerFiles, dockerCleanup, dockerRebuild, dockerLaunch };
+export { dockerCleanup, dockerRebuild, dockerLaunch };

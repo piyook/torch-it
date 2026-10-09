@@ -1,12 +1,13 @@
 import * as fs from "fs";
 import * as path from "path";
 import { outputToConsole } from "./ui";
+import { exitWithError } from "./json-output";
 
 /**
  * Checks if the current directory contains a Node.js project
  * by looking for package.json, yarn.lock, pnpm-lock.yaml, or npm-shrinkwrap.json
  */
-export function isNodeProject(): boolean {
+function isNodeProject(): boolean {
   const requiredFiles = [
     "package.json",
     "yarn.lock",
@@ -33,6 +34,6 @@ export function validateNodeProject(): void {
       "Please create a Node.js project (with package.json) before using torch-it.",
       "info",
     );
-    process.exit(1);
+    exitWithError();
   }
 }

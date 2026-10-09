@@ -1,32 +1,83 @@
-import { COLOURS, ICONS } from "../constants/constants";
+import { COLOURS, ICONS, setColourEnabled } from "../constants/constants";
 import { logger } from "./logger";
-function outputToConsole(msg: string, type: string) {
-  let message;
+import { isJsonMode, recordProblem } from "./json-output";
+
+// Plain output is for anything that is not a person at a terminal: no colour,
+// emoji, banner or boxes, and a fixed prefix per line that a script can match.
+let plain = false;
+let quiet = false;
+
+const PLAIN_PREFIXES: Record<string, string> = {
+  success: "ok: ",
+  warn: "warning: ",
+  fail: "error: ",
+  step: "> ",
+};
+
+function configureOutput(options: { plain?: boolean; quiet?: boolean }): void {
+  plain =
+    options.plain === true || isJsonMode() || process.stdout.isTTY !== true;
+  quiet = options.quiet === true;
+  setColourEnabled(!plain && !process.env.NO_COLOR);
+}
+
+const isQuiet = (): boolean => quiet;
+
+// Runs fn with --quiet lifted, for output the user must see whatever was asked
+function showInFull(fn: () => void): void {
+  const wasQuiet = quiet;
+  quiet = false;
+  try {
+    fn();
+  } finally {
+    quiet = wasQuiet;
+  }
+}
+
+const ICON_PATTERN = new RegExp(
+  `(?:${[...new Set(Object.values(ICONS))].join("|")})\\uFE0F? ?`,
+  "gu",
+);
+
+const stripDecoration = (text: string): string =>
+  text.replace(ICON_PATTERN, "").trimEnd();
+
+function formatDecorated(msg: string, type: string): string {
   switch (type) {
     case "info":
-      message = `${COLOURS.CYAN(ICONS.INFO)} ${COLOURS.BOLD(msg)}${COLOURS.RESET("")}`;
-
-      break;
+      return `${COLOURS.CYAN(ICONS.INFO)} ${COLOURS.BOLD(msg)}${COLOURS.RESET("")}`;
     case "success":
-      message = `${COLOURS.GREEN(ICONS.SUCCESS)} ${msg}${COLOURS.RESET("")}`;
-      break;
+      return `${COLOURS.GREEN(ICONS.SUCCESS)} ${msg}${COLOURS.RESET("")}`;
     case "warn":
-      message = `${COLOURS.YELLOW(ICONS.WARN)} ${msg}${COLOURS.RESET("")}`;
-      break;
+      return `${COLOURS.YELLOW(ICONS.WARN)} ${msg}${COLOURS.RESET("")}`;
     case "fail":
-      message = `${COLOURS.RED(ICONS.FAIL)} ${msg}${COLOURS.RESET("")}`;
-      break;
+      return `${COLOURS.RED(ICONS.FAIL)} ${msg}${COLOURS.RESET("")}`;
     case "step":
-      message = `\n${COLOURS.PURPLE("▶")} ${COLOURS.BOLD(msg)}${COLOURS.RESET("")}`;
-      break;
+      return `\n${COLOURS.PURPLE("▶")} ${COLOURS.BOLD(msg)}${COLOURS.RESET("")}`;
     default:
-      message = msg;
+      return msg;
   }
-  console.log(message);
+}
+
+const formatPlain = (msg: string, type: string): string =>
+  `${PLAIN_PREFIXES[type] ?? ""}${stripDecoration(msg).replace(/^\n+/, "")}`;
+
+function outputToConsole(msg: string, type: string) {
+  const message = plain ? formatPlain(msg, type) : formatDecorated(msg, type);
   logger(message);
+  recordProblem(type, stripDecoration(msg).replace(/^\n+/, ""));
+
+  // Problems go to stderr, and are never silenced
+  if (type === "warn" || type === "fail") {
+    console.error(message);
+  } else if (!quiet && !isJsonMode()) {
+    console.log(message);
+  }
 }
 
 function printBanner() {
+  if (plain || quiet) return;
+
   printBox(
     [`                  ${ICONS.TARGET} TORCH LIT ${ICONS.ROCKET}`],
     COLOURS.PURPLE,
@@ -37,9 +88,9 @@ function printBanner() {
  ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) )
   (( (( (( (( (( (( (( (( (( (( (( (( (( ((
  ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) ) )
- ____  _   _ ____  _   _ ___ _   _  ____ 
+ ____  _   _ ____  _   _ ___ _   _  ____
 | __ )| | | |  _ \\| \\ | |_ _| \\ | |/ ___|
-|  _ \\| | | | |_) |  \\| || ||  \\| | |  _ 
+|  _ \\| | | | |_) |  \\| || ||  \\| | |  _
 | |_) | |_| |  _ <| |\\  || || |\\  | |_| |
 |____/ \\___/|_| \\_\\_| \\_|___|_| \\_|\\____|
 `;
@@ -48,7 +99,8 @@ function printBanner() {
 }
 
 function printRisingFromAshesBanner() {
-  console.log("");
+  if (plain || quiet) return;
+
   printBox(
     [`               ${ICONS.PHOENIX} RISING FROM THE ASHES ${ICONS.PHOENIX}`],
     COLOURS.PURPLE,
@@ -60,10 +112,28 @@ function getVisibleLength(text: string): number {
   return text.replace(ansiRegex, "").length;
 }
 
+// The box is the end-of-run summary, so it is shown even with --quiet
 function printBox(
   lines: string[],
   color: (text: string) => string = COLOURS.GREEN,
 ): void {
+  if (isJsonMode()) {
+    lines.forEach((line) => logger(stripDecoration(line)));
+    return;
+  }
+
+  if (plain) {
+    lines
+      .map(stripDecoration)
+      .filter((line) => line.trim() !== "")
+      .forEach((line) => {
+        logger(line);
+        console.log(line);
+      });
+    return;
+  }
+
+  console.log("");
   const width = Math.max(56, ...lines.map((line) => getVisibleLength(line)));
   const border = color("═".repeat(width));
   console.log(color("╔" + border + "╗"));
@@ -79,4 +149,12 @@ function printBox(
   console.log(color("╚" + border + "╝"));
 }
 
-export { outputToConsole, printBanner, printBox, printRisingFromAshesBanner };
+export {
+  configureOutput,
+  isQuiet,
+  outputToConsole,
+  printBanner,
+  printBox,
+  printRisingFromAshesBanner,
+  showInFull,
+};

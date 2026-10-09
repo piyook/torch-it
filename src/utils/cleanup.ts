@@ -1,206 +1,140 @@
 import { outputToConsole } from "./ui";
-import * as fs from "fs";
-import {
-  BUILD_DIRS,
-  CACHE_DIRS,
-  CUSTOM_DIRS,
-  FILE_PATTERNS,
-} from "../constants/config";
-import {
-  getAvailablePackageManagers,
-  cleanPackageManagerCache,
-} from "./package-managers";
+import { cleanPackageManagerCache } from "./package-managers";
+import type { PackageManager } from "./package-managers";
 import type { TorchRcConfig } from "../types";
-import { DEFAULT_TORCH_RC_CONFIG } from "../types";
+import {
+  describeTrackedLocations,
+  getCleanupPlan,
+  getRunProtection,
+} from "./targets";
 import {
   createCleanupTargetHandler,
   filterProtectedTargets,
   processGlobPattern,
 } from "./cleanup-helpers";
 
-const parseCliOverrides = (cliArgs: string[]): Partial<TorchRcConfig> => {
-  const overrides: Partial<TorchRcConfig> = {};
+type CleanupHandler = ReturnType<typeof createCleanupTargetHandler>;
 
-  for (const arg of cliArgs) {
-    if (!arg.startsWith("--")) continue;
-
-    const [key, value] = arg.slice(2).split("=", 2);
-    if (!key || !value) continue;
-
-    try {
-      // Try to parse as JSON first (for arrays/objects)
-      const parsedValue = JSON.parse(value);
-      (overrides as any)[key] = parsedValue;
-    } catch {
-      // If not JSON, treat as string or boolean
-      if (value === "true") {
-        (overrides as any)[key] = true;
-      } else if (value === "false") {
-        (overrides as any)[key] = false;
-      } else {
-        (overrides as any)[key] = value;
-      }
-    }
-  }
-
-  return overrides;
-};
-
-export const loadTorchRcConfig = (): TorchRcConfig => {
-  const torchRcPath = "torchrc.json";
-
-  if (!fs.existsSync(torchRcPath)) {
-    return {};
-  }
-
-  try {
-    const parsed = JSON.parse(
-      fs.readFileSync(torchRcPath, "utf8"),
-    ) as TorchRcConfig;
-    return parsed;
-  } catch {
-    outputToConsole(
-      "Invalid torchrc.json (must be valid JSON) - skipping custom config",
-      "warn",
-    );
-    return {};
-  }
-};
-
-export const getTorchRcConfigFromFile = (): Required<TorchRcConfig> => {
-  const userConfig = loadTorchRcConfig();
-  return {
-    customPaths: userConfig.customPaths ?? DEFAULT_TORCH_RC_CONFIG.customPaths,
-    customDirs: userConfig.customDirs ?? DEFAULT_TORCH_RC_CONFIG.customDirs,
-    customFiles: userConfig.customFiles ?? DEFAULT_TORCH_RC_CONFIG.customFiles,
-    protectedPaths:
-      userConfig.protectedPaths ?? DEFAULT_TORCH_RC_CONFIG.protectedPaths,
-    dockerMode: userConfig.dockerMode ?? DEFAULT_TORCH_RC_CONFIG.dockerMode,
-    logfile: userConfig.logfile ?? DEFAULT_TORCH_RC_CONFIG.logfile,
-    rebuild: userConfig.rebuild ?? DEFAULT_TORCH_RC_CONFIG.rebuild,
-  };
-};
-
-export { loadTorchRcCustomPaths };
-
-export const getTorchRcConfig = (
-  cliArgs: string[] = [],
-): Required<TorchRcConfig> => {
-  const fileConfig = getTorchRcConfigFromFile();
-  const cliOverrides = parseCliOverrides(cliArgs);
-
-  // CLI overrides take precedence over file config
-  return { ...fileConfig, ...cliOverrides };
-};
-
-const loadTorchRcCustomPaths = (): string[] => {
-  const config = getTorchRcConfigFromFile();
-
-  const rawPaths = [
-    ...config.customPaths,
-    ...config.customDirs,
-    ...config.customFiles,
-  ];
-
-  return rawPaths
-    .filter((entry): entry is string => typeof entry === "string")
-    .map((entry) => entry.trim())
-    .filter((entry) => entry.length > 0);
-};
-
-const cleanupBuildsAndCaches = () => {
-  const isDryRun = process.env.TORCH_DRY_RUN === "1";
-  const torchRcConfig = getTorchRcConfigFromFile();
-  const torchRcCustomPaths = loadTorchRcCustomPaths();
-  const protectedPaths = torchRcConfig.protectedPaths;
-
-  const defaultTargets = [
-    ...new Set([...BUILD_DIRS, ...CACHE_DIRS, ...CUSTOM_DIRS]),
-  ];
-  const customTargets = [...new Set(torchRcCustomPaths)];
-  const filePatterns = [...FILE_PATTERNS];
-
-  // Filter out protected paths
-  const filteredDefaultTargets = filterProtectedTargets(
-    defaultTargets,
-    protectedPaths,
-  );
-  const filteredCustomTargets = filterProtectedTargets(
-    customTargets,
-    protectedPaths,
-  );
-
-  const handler = createCleanupTargetHandler({ isDryRun, protectedPaths });
-
-  outputToConsole(
-    "Scanning for build artifacts and cache directories...",
-    "step",
-  );
-  filteredDefaultTargets.forEach(handler.cleanupTarget);
+const removeFilePatterns = (
+  filePatterns: string[],
+  handler: CleanupHandler,
+): void => {
+  if (filePatterns.length === 0) return;
 
   outputToConsole("Scanning for log files and temporary files...", "step");
-
   for (const pattern of filePatterns) {
-    const isGlob = pattern.includes("*");
-    if (isGlob) {
+    if (pattern.includes("*")) {
       processGlobPattern(pattern, handler);
     } else {
       // Handle non-glob patterns (like tsconfig.tsbuildinfo)
       handler.cleanupTarget(pattern);
     }
   }
+};
 
-  if (filteredCustomTargets.length > 0) {
+const reportCleanup = (handler: CleanupHandler, isDryRun: boolean) => {
+  const removedCount = handler.removedPaths().length;
+  const failedCount = handler.failedPaths().length;
+
+  if (failedCount > 0) {
     outputToConsole(
-      "Deleting user defined custom directories and files",
-      "step",
+      `${failedCount} path(s) could not be removed - close anything using them and run again`,
+      "fail",
     );
-    filteredCustomTargets.forEach(handler.cleanupTarget);
-  }
-
-  // Report protected paths
-  const totalProtected =
-    defaultTargets.length -
-    filteredDefaultTargets.length +
-    (customTargets.length - filteredCustomTargets.length);
-  if (totalProtected > 0) {
+  } else if (removedCount === 0) {
     outputToConsole(
-      `Skipped ${totalProtected} protected path(s) from torchrc.json`,
+      "No build artifacts or cache directories found (project already clean)",
       "info",
     );
   }
 
-  const removedCount = handler.removedCount();
-  if (removedCount === 0) {
+  if (removedCount > 0) {
     outputToConsole(
-      "No build artifacts or cache directories found (project already clean)",
+      `${isDryRun ? "Would remove" : "Removed"} ${removedCount} build/cache item(s)`,
+      "success",
+    );
+  }
+  return { cleaned: removedCount > 0, failed: failedCount };
+};
+
+const cleanupBuildsAndCaches = (torchRcConfig: Required<TorchRcConfig>) => {
+  const isDryRun = process.env.TORCH_DRY_RUN === "1";
+  const plan = getCleanupPlan(torchRcConfig);
+  const { protectedPaths, trackedFiles } = getRunProtection(
+    torchRcConfig,
+    plan,
+  );
+
+  // Filter out protected paths
+  const defaultTargets = filterProtectedTargets(
+    plan.defaultTargets,
+    protectedPaths,
+  );
+  const customTargets = filterProtectedTargets(
+    plan.customTargets,
+    protectedPaths,
+  );
+
+  const handler = createCleanupTargetHandler({ isDryRun, protectedPaths });
+
+  if (!plan.onlyMode) {
+    outputToConsole(
+      "Scanning for build artifacts and cache directories...",
+      "step",
+    );
+    defaultTargets.forEach(handler.cleanupTarget);
+  }
+
+  removeFilePatterns(plan.filePatterns, handler);
+
+  if (customTargets.length > 0) {
+    outputToConsole(
+      plan.onlyMode
+        ? "Removing only the paths listed in 'only'"
+        : "Deleting user defined custom directories and files",
+      "step",
+    );
+    customTargets.forEach(handler.cleanupTarget);
+  }
+
+  // Report protected paths
+  const totalProtected =
+    plan.defaultTargets.length -
+    defaultTargets.length +
+    (plan.customTargets.length - customTargets.length);
+  if (totalProtected > 0) {
+    outputToConsole(`Skipped ${totalProtected} protected path(s)`, "info");
+  }
+
+  if (trackedFiles.length > 0) {
+    outputToConsole(
+      `Kept ${trackedFiles.length} file(s) tracked in git, under: ${describeTrackedLocations(trackedFiles)}. Pass --allowTracked=true to remove them too.`,
+      "warn",
+    );
+  }
+
+  return {
+    ...reportCleanup(handler, isDryRun),
+    tracked: trackedFiles.length,
+    paths: {
+      removed: handler.removedPaths(),
+      failed: handler.failedPaths(),
+      tracked: trackedFiles,
+    },
+  };
+};
+
+// Only the package manager this project uses - the others are not ours to clear
+const cleanupPackageManagerCaches = (packageManager: PackageManager | null) => {
+  if (!packageManager) {
+    outputToConsole(
+      "No package manager cache cleaned (npm/yarn/pnpm not available)",
       "info",
     );
     return false;
   }
 
-  outputToConsole(`Removed ${removedCount} build/cache directories`, "success");
-  return true;
-};
-
-const cleanupPackageManagerCaches = () => {
-  const availablePackageManagers = getAvailablePackageManagers();
-  let cacheCleaned = false;
-
-  for (const pm of availablePackageManagers) {
-    if (cleanPackageManagerCache(pm)) {
-      cacheCleaned = true;
-    }
-  }
-
-  if (!cacheCleaned) {
-    outputToConsole(
-      "No package manager caches cleaned (tools not available)",
-      "info",
-    );
-  }
-
-  return cacheCleaned;
+  return cleanPackageManagerCache(packageManager);
 };
 
 export { cleanupBuildsAndCaches, cleanupPackageManagerCaches };

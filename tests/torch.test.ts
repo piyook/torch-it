@@ -4,14 +4,18 @@ vi.mock("../src/utils/docker", () => ({
   dockerCleanup: vi.fn(),
   dockerRebuild: vi.fn(),
   dockerLaunch: vi.fn(),
+  DOCKER_FILES: [],
 }));
 
 vi.mock("../src/utils/cleanup", () => ({
   cleanupBuildsAndCaches: vi.fn(),
   cleanupPackageManagerCaches: vi.fn(),
+}));
+
+vi.mock("../src/utils/torchrc", () => ({
   getTorchRcConfig: vi.fn(),
-  getTorchRcConfigFromFile: vi.fn(),
-  loadTorchRcCustomPaths: vi.fn(),
+  getCustomPaths: vi.fn(() => []),
+  getProtectedPaths: vi.fn(() => []),
 }));
 
 vi.mock("../src/utils/dependency", () => ({
@@ -19,9 +23,11 @@ vi.mock("../src/utils/dependency", () => ({
 }));
 
 vi.mock("../src/utils/ui", () => ({
+  configureOutput: vi.fn(),
   printBanner: vi.fn(),
   outputToConsole: vi.fn(),
   printRisingFromAshesBanner: vi.fn(),
+  showInFull: vi.fn((fn: () => void) => fn()),
 }));
 
 vi.mock("../src/utils/logger", () => ({
@@ -29,8 +35,13 @@ vi.mock("../src/utils/logger", () => ({
   clearLog: vi.fn(),
 }));
 
+vi.mock("../src/utils/prompt", () => ({
+  promptYesNo: vi.fn(),
+}));
+
 vi.mock("../src/utils/status", () => ({
   statusMessage: vi.fn(),
+  torchFailed: vi.fn(() => false),
 }));
 
 import {
@@ -41,12 +52,13 @@ import {
 import {
   cleanupBuildsAndCaches,
   cleanupPackageManagerCaches,
-  getTorchRcConfig,
-  getTorchRcConfigFromFile,
-  loadTorchRcCustomPaths,
 } from "../src/utils/cleanup";
+import { getTorchRcConfig } from "../src/utils/torchrc";
 import { installDependencies } from "../src/utils/dependency";
 import { outputToConsole, printRisingFromAshesBanner } from "../src/utils/ui";
+import { clearLog } from "../src/utils/logger";
+import { promptYesNo } from "../src/utils/prompt";
+import { torchFailed } from "../src/utils/status";
 
 const mockedDockerCleanup = vi.mocked(dockerCleanup);
 const mockedDockerRebuild = vi.mocked(dockerRebuild);
@@ -65,7 +77,14 @@ describe("torch main functionality", () => {
     vi.clearAllMocks();
     vi.resetModules();
     // Mock process.argv
-    process.argv = ["node", "torch-it"];
+    process.argv = ["node", "torch-it", "--yes"];
+    delete process.env.TORCH_DRY_RUN;
+    mockedCleanupBuildsAndCaches.mockReturnValue({
+      cleaned: true,
+      failed: 0,
+      tracked: 0,
+      paths: { removed: [], failed: [], tracked: [] },
+    });
   });
 
   it("performs dependency installation when rebuild is true", async () => {
@@ -76,11 +95,20 @@ describe("torch main functionality", () => {
       protectedPaths: [],
       dockerMode: true,
       logfile: false,
+      cacheClean: true,
+      dockerVolumes: false,
+      only: [],
+      allowTracked: false,
       rebuild: true,
     });
 
     mockedDockerCleanup.mockReturnValue("OK");
-    mockedCleanupBuildsAndCaches.mockReturnValue(true);
+    mockedCleanupBuildsAndCaches.mockReturnValue({
+      cleaned: true,
+      failed: 0,
+      tracked: 0,
+      paths: { removed: [], failed: [], tracked: [] },
+    });
     mockedCleanupPackageManagerCaches.mockReturnValue(true);
     mockedInstallDependencies.mockReturnValue(true);
     mockedDockerRebuild.mockReturnValue(true);
@@ -103,11 +131,20 @@ describe("torch main functionality", () => {
       protectedPaths: [],
       dockerMode: true,
       logfile: false,
+      cacheClean: true,
+      dockerVolumes: false,
+      only: [],
+      allowTracked: false,
       rebuild: false,
     });
 
     mockedDockerCleanup.mockReturnValue("OK");
-    mockedCleanupBuildsAndCaches.mockReturnValue(true);
+    mockedCleanupBuildsAndCaches.mockReturnValue({
+      cleaned: true,
+      failed: 0,
+      tracked: 0,
+      paths: { removed: [], failed: [], tracked: [] },
+    });
     mockedCleanupPackageManagerCaches.mockReturnValue(true);
 
     // Import and run the main module
@@ -135,11 +172,20 @@ describe("torch main functionality", () => {
       protectedPaths: [],
       dockerMode: true,
       logfile: false,
+      cacheClean: true,
+      dockerVolumes: false,
+      only: [],
+      allowTracked: false,
       rebuild: true,
     });
 
     mockedDockerCleanup.mockReturnValue("NO_DOCKER");
-    mockedCleanupBuildsAndCaches.mockReturnValue(true);
+    mockedCleanupBuildsAndCaches.mockReturnValue({
+      cleaned: true,
+      failed: 0,
+      tracked: 0,
+      paths: { removed: [], failed: [], tracked: [] },
+    });
     mockedCleanupPackageManagerCaches.mockReturnValue(true);
     mockedInstallDependencies.mockReturnValue(true);
 
@@ -152,6 +198,72 @@ describe("torch main functionality", () => {
     expect(mockedDockerLaunch).not.toHaveBeenCalled();
   });
 
+  it("refuses to run without --yes when there is no terminal to confirm on", async () => {
+    process.argv = ["node", "torch-it"];
+    const originalIsTTY = process.stdin.isTTY;
+    process.stdin.isTTY = false;
+
+    // Stop at the exit, as the real process would
+    const originalExit = process.exit;
+    process.exit = vi.fn(() => {
+      throw new Error("exit");
+    }) as any;
+
+    try {
+      await expect(import("../src/torch.js")).rejects.toThrow("exit");
+
+      expect(process.exit).toHaveBeenCalledWith(1);
+      expect(mockedOutputToConsole).toHaveBeenCalledWith(
+        expect.stringContaining("Re-run with --yes"),
+        "fail",
+      );
+      // Refused before anything is written, including the log file
+      expect(vi.mocked(clearLog)).not.toHaveBeenCalled();
+      expect(mockedCleanupBuildsAndCaches).not.toHaveBeenCalled();
+    } finally {
+      process.exit = originalExit;
+      process.stdin.isTTY = originalIsTTY;
+    }
+  });
+
+  it("exits with 3 and deletes nothing when the prompt is answered no", async () => {
+    process.argv = ["node", "torch-it"];
+    const originalIsTTY = process.stdin.isTTY;
+    process.stdin.isTTY = true;
+    vi.mocked(promptYesNo).mockResolvedValue(false);
+
+    // Stop at the exit, as the real process would
+    const originalExit = process.exit;
+    process.exit = vi.fn().mockImplementationOnce(() => {
+      throw new Error("exit");
+    }) as any;
+    const mockedConsoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    try {
+      await import("../src/torch.js");
+      await vi.waitFor(() => expect(process.exit).toHaveBeenCalledWith(3));
+
+      expect(mockedCleanupBuildsAndCaches).not.toHaveBeenCalled();
+    } finally {
+      process.exit = originalExit;
+      process.stdin.isTTY = originalIsTTY;
+      mockedConsoleError.mockRestore();
+    }
+  });
+
+  it("exits with 2 when the run went ahead and a step failed", async () => {
+    vi.mocked(torchFailed).mockReturnValueOnce(true);
+
+    try {
+      await import("../src/torch.js");
+      await vi.waitFor(() => expect(process.exitCode).toBe(2));
+    } finally {
+      process.exitCode = undefined;
+    }
+  });
+
   it("handles dry run mode correctly", async () => {
     process.argv = ["node", "torch-it", "--test"];
 
@@ -162,11 +274,20 @@ describe("torch main functionality", () => {
       protectedPaths: [],
       dockerMode: true,
       logfile: false,
+      cacheClean: true,
+      dockerVolumes: false,
+      only: [],
+      allowTracked: false,
       rebuild: true,
     });
 
     mockedDockerCleanup.mockReturnValue("OK");
-    mockedCleanupBuildsAndCaches.mockReturnValue(true);
+    mockedCleanupBuildsAndCaches.mockReturnValue({
+      cleaned: true,
+      failed: 0,
+      tracked: 0,
+      paths: { removed: [], failed: [], tracked: [] },
+    });
     mockedCleanupPackageManagerCaches.mockReturnValue(true);
     mockedInstallDependencies.mockReturnValue(true);
     mockedDockerRebuild.mockReturnValue(true);
@@ -178,12 +299,12 @@ describe("torch main functionality", () => {
     expect(process.env.TORCH_DRY_RUN).toBe("1");
     expect(mockedOutputToConsole).toHaveBeenCalledWith(
       "Running in --test dry-run mode (no files or services will be changed)",
-      "warn",
+      "info",
     );
   });
 
   it("displays help message and exits when --help flag is used", async () => {
-    process.argv = ["node", "torch-it", "--help"];
+    process.argv = ["node", "torch-it", "--help", "--yes"];
 
     // Mock process.exit to prevent actual exit during test
     const mockExit = vi.fn() as any;
@@ -205,8 +326,29 @@ describe("torch main functionality", () => {
     }
   });
 
+  it("prints the agent reference and exits when --llms flag is used", async () => {
+    process.argv = ["node", "torch-it", "--llms", "--yes"];
+
+    const mockExit = vi.fn() as any;
+    const originalExit = process.exit;
+    process.exit = mockExit;
+    const stdout = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation(() => true);
+
+    try {
+      await import("../src/torch.js");
+
+      expect(mockExit).toHaveBeenCalledWith(0);
+      expect(String(stdout.mock.calls[0][0])).toMatch(/^# torch-it/);
+    } finally {
+      process.exit = originalExit;
+      stdout.mockRestore();
+    }
+  });
+
   it("displays version information and exits when --version flag is used", async () => {
-    process.argv = ["node", "torch-it", "--version"];
+    process.argv = ["node", "torch-it", "--version", "--yes"];
 
     // Mock process.exit to prevent actual exit during test
     const mockExit = vi.fn() as any;
@@ -229,7 +371,7 @@ describe("torch main functionality", () => {
   });
 
   it("displays version information and exits when -v flag is used", async () => {
-    process.argv = ["node", "torch-it", "-v"];
+    process.argv = ["node", "torch-it", "-v", "--yes"];
 
     // Mock process.exit to prevent actual exit during test
     const mockExit = vi.fn() as any;
@@ -252,28 +394,26 @@ describe("torch main functionality", () => {
   });
 
   it("displays configuration information and exits when --config flag is used", async () => {
-    process.argv = ["node", "torch-it", "--config"];
+    process.argv = ["node", "torch-it", "--config", "--yes"];
 
     // Mock process.exit to prevent actual exit during test
     const mockExit = vi.fn() as any;
     const originalExit = process.exit;
     process.exit = mockExit;
 
-    // Mock the config functions to return proper values
-    const mockedGetTorchRcConfigFromFile = vi.mocked(getTorchRcConfigFromFile);
-    const mockedLoadTorchRcCustomPaths = vi.mocked(loadTorchRcCustomPaths);
-
-    mockedGetTorchRcConfigFromFile.mockReturnValue({
+    mockedGetTorchRcConfig.mockReturnValue({
       customPaths: [],
       customDirs: [],
       customFiles: [],
       protectedPaths: [],
       dockerMode: true,
       logfile: false,
+      cacheClean: true,
+      dockerVolumes: false,
+      only: [],
+      allowTracked: false,
       rebuild: true,
     });
-
-    mockedLoadTorchRcCustomPaths.mockReturnValue([]);
 
     try {
       // Import and run the main module

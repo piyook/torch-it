@@ -1,16 +1,12 @@
 import { outputToConsole } from "./ui";
-import {
-  detectPackageManager,
-  installWithPackageManager,
-} from "./package-managers";
+import { installWithPackageManager } from "./package-managers";
+import type { PackageManager } from "./package-managers";
 
-const installDependencies = () => {
+const installDependencies = (packageManager: PackageManager | null) => {
   outputToConsole(
     "Detecting package manager and installing dependencies...",
     "step",
   );
-
-  const packageManager = detectPackageManager();
 
   if (!packageManager) {
     outputToConsole(
