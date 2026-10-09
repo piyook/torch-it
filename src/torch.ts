@@ -25,7 +25,7 @@ import {
 const cliArgs = process.argv.slice(2);
 const parsedArgs = parseCliArgs(cliArgs);
 // --help is for people, so it is printed as usual even next to --json
-setJsonMode(parsedArgs.isJson && !parsedArgs.isHelp);
+setJsonMode(parsedArgs.isJson && !parsedArgs.isHelp && !parsedArgs.isLlms);
 configureOutput({ plain: parsedArgs.isPlain, quiet: parsedArgs.isQuiet });
 applyWorkingDirectory(parsedArgs);
 

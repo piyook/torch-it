@@ -6,9 +6,11 @@ import { getTorchRcConfig } from "./torchrc";
 import { EXIT } from "../constants/constants";
 import { exitWithError, isJsonMode, printJson } from "./json-output";
 import { getVersion } from "./version";
+import { readLlmsReference } from "./llms";
 
 interface CliFlags {
   isHelp: boolean;
+  isLlms: boolean;
   isVersion: boolean;
   isConfig: boolean;
   isDryRun: boolean;
@@ -27,6 +29,7 @@ export interface CliArgs extends CliFlags {
 const FLAGS: Record<string, keyof CliFlags> = {
   "--help": "isHelp",
   "-h": "isHelp",
+  "--llms": "isLlms",
   "--version": "isVersion",
   "-v": "isVersion",
   "--config": "isConfig",
@@ -42,6 +45,7 @@ const FLAGS: Record<string, keyof CliFlags> = {
 export function parseCliArgs(args: string[]): CliArgs {
   const parsed: CliArgs = {
     isHelp: false,
+    isLlms: false,
     isVersion: false,
     isConfig: false,
     isDryRun: false,
@@ -92,6 +96,21 @@ export function handleSpecialFlags(args: CliArgs): void {
   if (args.isHelp) {
     setLoggerEnabled(false);
     showHelp();
+    process.exit(EXIT.OK);
+  }
+
+  if (args.isLlms) {
+    const reference = readLlmsReference();
+    if (reference === undefined) {
+      outputToConsole(
+        "llms.txt is missing from this install. Read it at https://github.com/piyook/torch-it/blob/main/llms.txt",
+        "fail",
+      );
+      exitWithError();
+    } else {
+      // Printed as it is: it is a document, not a run of status lines
+      process.stdout.write(reference);
+    }
     process.exit(EXIT.OK);
   }
 

@@ -3,6 +3,7 @@ import { parseCliArgs } from "../../src/utils/cli";
 
 const noFlags = {
   isHelp: false,
+  isLlms: false,
   isVersion: false,
   isConfig: false,
   isDryRun: false,
@@ -21,6 +22,7 @@ describe("parseCliArgs", () => {
   it.each([
     ["--help", "isHelp"],
     ["-h", "isHelp"],
+    ["--llms", "isLlms"],
     ["--version", "isVersion"],
     ["-v", "isVersion"],
     ["--config", "isConfig"],

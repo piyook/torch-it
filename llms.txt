@@ -1,12 +1,12 @@
 # torch-it
 
-> A Node.js CLI that deletes a project's build output, caches and `node_modules`, clears the package manager cache, then reinstalls dependencies. Optionally tears down and rebuilds Docker Compose services. Describes torch-it 3.0.0 (`torch-it --version`). This file is the reference for AI agents and scripts; `README.md` is the human guide. `torch-it --help` prints a short version of the same rules.
+> A Node.js CLI that deletes a project's build output, caches and `node_modules`, clears the package manager cache, then reinstalls dependencies. Optionally tears down and rebuilds Docker Compose services. Describes torch-it 3.0.0 (`torch-it --version`). This file is the reference for AI agents and scripts; `README.md` is the human guide. `torch-it --llms` prints this file for the installed version, and `torch-it --help` prints a short version of the same rules.
 
 ## What it does and does not do
 
 - Works on one directory: the current one, or the one given with `--cwd=<dir>`. That should be the project root. It does not descend into workspace packages: targets are paths relative to that directory.
 - The directory must hold a `package.json`, `yarn.lock`, `pnpm-lock.yaml` or `npm-shrinkwrap.json`. Otherwise it exits `1` and changes nothing.
-- Deletes with a recursive force remove. Nothing goes to a recycle bin. Files that git tracks are kept (see below); anything untracked or ignored that sits in a target is gone for good.
+- Deletes with a recursive force remove. Nothing goes to a recycle bin. Files that git tracks are kept (see "Files tracked in git"); anything untracked or ignored that sits in a target is gone for good.
 - `node_modules` is always a target, so a run with `--rebuild=false` leaves the project without dependencies until they are installed again.
 - Clears the package manager's cache, and that cache is machine-wide, not per project (`npm cache clean --force`, `yarn cache clean` or `pnpm store prune`). Later installs in every project on the machine download again. Pass `--cacheClean=false` to leave it alone; a broken install is rarely the cache's fault.
 - With Docker mode on, `docker compose down --rmi all` removes the project's containers and images. Volumes are kept unless `dockerVolumes` is also on, in which case data held in them, such as a development database, is lost.
@@ -45,6 +45,7 @@ A list given on the command line is ADDED to the list of the same name in `torch
 | `--plain` | Plain output at a terminal. Already the case when output is captured |
 | `--config` | Print the resolved settings and the targets that exist, then exit. Includes any overrides passed with it |
 | `--help`, `-h` | Usage |
+| `--llms` | Print this file, for the version that is installed |
 | `--version`, `-v` | `torch-it v<version>` |
 | `--protectedPaths=a,b` | Paths to keep |
 | `--customPaths=a,b` | Extra paths to delete |
@@ -60,7 +61,7 @@ A list given on the command line is ADDED to the list of the same name in `torch
 - A boolean option with no value means `true`: `--logfile` is `--logfile=true`.
 - A list is comma-separated: `--customPaths=temp,logs`. A JSON array also works but must be quoted so the shell keeps the inner quotes: `'--customPaths=["temp","logs"]'`. A path that contains a comma needs the JSON form.
 - Any other argument, and any value of the wrong type, is an error: torch-it prints each problem and exits `1` before deleting anything.
-- `--help` and `--version` work in any directory and ignore every other argument. `--config` works in any directory but still rejects invalid options.
+- `--help`, `--llms` and `--version` work in any directory and ignore every other argument. `--config` works in any directory but still rejects invalid options.
 
 ## torchrc.json
 
@@ -70,8 +71,12 @@ Optional file in the project root. For the boolean options the command line over
 {
   "customPaths": ["apps/web/.next", "services/api/tmp"],
   "protectedPaths": ["important-data", "dist/keep.json"],
+  "only": [],
   "dockerMode": false,
+  "dockerVolumes": false,
   "rebuild": true,
+  "cacheClean": true,
+  "allowTracked": false,
   "logfile": false
 }
 ```
@@ -116,7 +121,7 @@ Optional file in the project root. For the boolean options the command line over
 ## Order of work
 
 1. Docker teardown, if Docker mode is on.
-2. Default targets, then root file patterns, then custom paths.
+2. Default targets, then root file patterns, then custom paths. With `only` set: just the `only` paths.
 3. Package manager cache clean, unless `cacheClean` is `false`.
 4. Dependency install, unless `rebuild` is `false`.
 5. Docker rebuild and start, if the teardown ran and `rebuild` is not `false`.
@@ -155,7 +160,7 @@ Optional file in the project root. For the boolean options the command line over
 ```
 
 - `ok` and `exitCode` match the process exit code. `changed` is `false` when nothing on disk can have changed: a dry run, or exit `1`.
-- `removed`: paths removed. In a dry run, the paths that would be removed. Paths are relative to `cwd` and use `/`.
+- `removed`: paths removed. In a dry run, the paths that would be removed. Paths are relative to `cwd`.
 - `failed`: paths that could not be removed. Not empty means exit `2`.
 - `keptTracked`: files kept because git tracks them.
 - `steps`: one of `ok`, `failed`, `skipped` per step; `dockerTeardown` can also be `unavailable`. In a dry run `ok` means the step would run.
@@ -164,7 +169,7 @@ Optional file in the project root. For the boolean options the command line over
 - When nothing was changed because of exit `1`, the document has only `version`, `ok: false`, `exitCode: 1`, `changed: false`, `warnings` and `errors`.
 - `--json` never prompts. Without `--yes` or `--test` it is exit `1`.
 - stderr still gets the `warning:` and `error:` lines as they happen, and the output of `npm install` and `docker compose`. Read the JSON from stdout only.
-- `torch-it --version --json` prints `{"version": "..."}`. `torch-it --config --json` prints `version`, `cwd` and the resolved `config`. `--help` ignores `--json`.
+- `torch-it --version --json` prints `{"version": "..."}`. `torch-it --config --json` prints `version`, `cwd` and the resolved `config`. `--help` and `--llms` ignore `--json`.
 - New fields may be added in later versions. Do not fail on a field you do not know.
 
 ## Text output
@@ -189,8 +194,8 @@ Without `--json`, when stdout is not a terminal, which is always the case for an
 
 | Code | Meaning |
 |---|---|
-| `0` | Every step that was meant to run succeeded, a dry run found no problem, or `--config`, `--help` or `--version` was shown |
-| `1` | Nothing was changed: invalid option or `torchrc.json`, not a Node.js project, or no terminal and no `--yes` |
+| `0` | Every step that was meant to run succeeded, a dry run found no problem, or `--config`, `--help`, `--llms` or `--version` was shown |
+| `1` | Nothing was changed: invalid option or `torchrc.json`, not a Node.js project, a `--cwd` directory that cannot be entered, no terminal and no `--yes`, or `--json` with neither `--yes` nor `--test` |
 | `2` | The run went ahead and at least one step failed: a path could not be removed, dependency install failed, Docker mode is on but Docker is not available, or a Docker teardown, rebuild or start failed |
 | `3` | The user answered the prompt with anything but `y`/`yes`. Nothing was changed |
 
@@ -198,7 +203,7 @@ Without `--json`, when stdout is not a terminal, which is always the case for an
 - A failed package manager cache clean is the one failure that does not change the exit code. The summary shows `Package manager cache not cleaned`.
 - A dry run exits `2` when it can already see the real run would fail, for example Docker mode with no Docker. Nothing was changed.
 - After exit `1` or `3` it is safe to fix the cause and run again. After exit `2` the project is partly cleaned: read the `error:` lines, fix the cause and run again, which is safe to repeat.
-- The summary box at the end starts with `PROJECT SUCCESSFULLY TORCHED`, `TORCHED WITH ERRORS`, `DRY RUN COMPLETE - NOTHING WAS CHANGED` or `DRY RUN FOUND PROBLEMS - NOTHING WAS CHANGED`.
+- The summary at the end of the text output starts with `PROJECT SUCCESSFULLY TORCHED`, `TORCHED WITH ERRORS`, `DRY RUN COMPLETE - NOTHING WAS CHANGED` or `DRY RUN FOUND PROBLEMS - NOTHING WAS CHANGED`.
 - Prefer `--json` and its fields over matching text. Without it, rely on the exit code first, then on the line prefixes and the phrases quoted here. With `--logfile=true` the text output is also written to `torch-it.log`.
 
 ## Recipes

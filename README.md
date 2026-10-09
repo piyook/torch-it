@@ -277,6 +277,7 @@ List options take comma-separated paths. A JSON array works too, but most shells
 | Flag | Description |
 |------|-------------|
 | `--help`, `-h` | Show help and available options |
+| `--llms` | Print the reference for AI agents and scripts (`llms.txt`) |
 | `--version`, `-v` | Show version and exit |
 | `--config` | Show current configuration and exit |
 | `--test` | Dry run — preview changes without executing |
@@ -343,7 +344,7 @@ The `*` patterns match files in the project root only.
 
 ## Using with AI agents and scripts
 
-[`llms.txt`](llms.txt) is the reference for AI coding agents and scripts: every option, what is deleted, how protection works, exit codes and the phrases to look for in the output. It ships in the npm package next to this README.
+[`llms.txt`](llms.txt) is the reference for AI coding agents and scripts: every option, what is deleted, how protection works, exit codes and the phrases to look for in the output. It ships in the npm package next to this README, and `torch-it --llms` prints it, so an agent can read the reference for the exact version that is installed.
 
 The safe sequence is the same for an agent as for a person in a hurry:
 
