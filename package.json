@@ -12,8 +12,8 @@
   "bugs": {
     "url": "https://github.com/piyook/torch-it/issues"
   },
-  "license": "ISC",
-  "author": "",
+  "license": "MIT",
+  "author": "piyook",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/piyook/torch-it.git"
@@ -27,44 +27,49 @@
   ],
   "type": "commonjs",
   "main": "dist/torch-it.js",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "build": "esbuild src/torch.ts --bundle --outfile=dist/torch-it.js --platform=node --format=cjs --minify --banner:js=\"#!/usr/bin/env node\"",
+    "build": "esbuild src/torch.ts --bundle --outfile=dist/torch-it.js --platform=node --format=cjs --target=node20 --minify --banner:js=\"#!/usr/bin/env node\"",
     "torch-it": "npm run build && node dist/torch-it.js",
-    "torch-it:ts": "ts-node src/torch.ts",
+    "torch-it:ts": "tsx src/torch.ts",
     "lint": "oxlint .",
     "lint:fix": "oxlint . --fix",
-    "format": "prettier --check src/**/*.{ts,js,json} tests/**/*.{ts,js,json} package.json package-lock.json .commitlintrc.json",
-    "format:write": "prettier --write src/**/*.{ts,js,json} tests/**/*.{ts,js,json} package.json package-lock.json .commitlintrc.json",
-    "quality": "npm run lint && npm run format && npm test",
+    "format": "prettier --check \"src/**/*.{ts,js,json}\" \"tests/**/*.{ts,js,json}\" package.json package-lock.json .commitlintrc.json",
+    "format:write": "prettier --write \"src/**/*.{ts,js,json}\" \"tests/**/*.{ts,js,json}\" package.json package-lock.json .commitlintrc.json",
+    "fallow": "fallow",
+    "quality": "npm run lint && npm run format && npm run fallow && npm test",
     "validate-branch-name": "validate-branch-name",
     "prepare": "husky",
     "prepublishOnly": "npm run build",
     "test": "tsc --noEmit && vitest run",
     "test:watch": "vitest"
   },
-  "dependencies": {},
   "devDependencies": {
-    "@commitlint/cli": "^21.0.0",
-    "@commitlint/config-conventional": "^21.0.0",
-    "@types/node": "^25.6.2",
-    "esbuild": "^0.28.0",
+    "@commitlint/cli": "^21.2.3",
+    "@commitlint/config-conventional": "^21.2.3",
+    "@types/node": "^26.6.4",
+    "esbuild": "^0.28.2",
+    "fallow": "^3.33.0",
     "husky": "^9.1.7",
-    "lint-staged": "^17.0.4",
-    "oxlint": "^1.63.0",
-    "prettier": "^3.8.3",
-    "ts-node": "^10.9.2",
-    "typescript": "^6.0.3",
+    "lint-staged": "^17.6.0",
+    "oxlint": "^1.87.0",
+    "prettier": "^3.9.9",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
     "validate-branch-name": "^1.3.2",
-    "vitest": "^4.1.5"
+    "vitest": "^5.0.3"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,jsx,mjs,cjs,json}": [
+    "*.{ts,tsx,js,jsx,mjs,cjs}": [
       "oxlint --fix",
       "prettier --write"
-    ]
+    ],
+    "*.json": "prettier --write"
   },
   "validate-branch-name": {
     "pattern": "^(main|dev){1}$|^(feat|fix|hotfix|release|chore)/.+$",
-    "errorMsg": "INVALID BRANCH NAME: use format 'feat|fix|hotfix|release|core/your-branch-name'"
+    "errorMsg": "INVALID BRANCH NAME: use format 'feat|fix|hotfix|release|chore/your-branch-name'"
   }
 }

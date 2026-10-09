@@ -1,6 +1,7 @@
 npm run validate-branch-name
 npm run format
 npm run lint
-npm audit --omit=dev
+npm run fallow
+npm audit --audit-level=high
 npm run test
 
