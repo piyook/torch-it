@@ -416,6 +416,7 @@ npm run build                   # bundle to dist/torch-it.js
 - `npm run fallow` checks for unused code, duplication and over-complex functions. It runs in the pre-push hook and in CI.
 - Branches are named `feat/…`, `fix/…`, `hotfix/…`, `release/…` or `chore/…`, and commits follow [Conventional Commits](https://www.conventionalcommits.org/). Both are checked by hooks and in CI.
 - Open pull requests against `dev`. `dev` is merged into `main` for a release.
+- Notable changes for each release are recorded in [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
