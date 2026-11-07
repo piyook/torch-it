@@ -1,6 +1,6 @@
 # torch-it
 
-> A Node.js CLI that deletes a project's build output, caches and `node_modules`, clears the package manager cache, then reinstalls dependencies. Optionally tears down and rebuilds Docker Compose services. Describes torch-it 3.0.0 (`torch-it --version`). This file is the reference for AI agents and scripts; `README.md` is the human guide. `torch-it --llms` prints this file for the installed version, and `torch-it --help` prints a short version of the same rules.
+> A Node.js CLI that deletes a project's build output, caches and `node_modules`, clears the package manager cache, then reinstalls dependencies. Optionally tears down and rebuilds Docker Compose services. Describes torch-it 3.0.1 (`torch-it --version`). This file is the reference for AI agents and scripts; `README.md` is the human guide. `torch-it --llms` prints this file for the installed version, and `torch-it --help` prints a short version of the same rules.
 
 ## What it does and does not do
 
@@ -136,7 +136,7 @@ Optional file in the project root. For the boolean options the command line over
 
 ```json
 {
-  "version": "3.0.0",
+  "version": "3.0.1",
   "ok": true,
   "exitCode": 0,
   "dryRun": true,

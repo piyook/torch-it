@@ -2,6 +2,14 @@
 
 Notable changes to torch-it. Versions follow [semantic versioning](https://semver.org/). Releases before 3.0.0 are described on the [GitHub releases page](https://github.com/piyook/torch-it/releases).
 
+## 3.0.1 - 2026-11-07
+
+No change to how torch-it behaves.
+
+### Changed
+
+- Development tools updated: commitlint, `@types/node`, fallow, oxlint, prettier and vitest.
+
 ## 3.0.0 - 2026-10-09
 
 Version 3 closes several ways a run could delete more than intended, and makes torch-it easier to drive from scripts and AI agents. Some behaviour has changed: see [Upgrading from 2.x](README.md#upgrading-from-2x) for what to do about each change.
