@@ -172,7 +172,7 @@ torch-it --yes --json     # the result
 
 ```json
 {
-  "version": "3.0.0",
+  "version": "3.0.1",
   "ok": true,
   "exitCode": 0,
   "dryRun": true,
